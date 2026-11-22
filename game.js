@@ -24,6 +24,13 @@
   let bestScore = Number(store.get('dodgevertex-best-score', 0)) || 0;
   let maxStage = Math.min(STAGES.length, Math.max(1, Number(store.get('dodgevertex-max-stage', 1)) || 1));
 
+  // ---- 연도별 스테이지 오픈: 기본 26단계, 2027년 1월 1일 27단계 ... 2030년 30단계 ----
+  const query = new URLSearchParams(location.search);
+  const debugYear = query.has('debug') ? Number(query.get('year')) || 0 : 0; // 테스트용: ?debug&year=2030
+  const currentYear = () => debugYear || new Date().getFullYear();
+  const isOpen = s => !s.openYear || s.openYear <= currentYear();
+  const openCount = () => STAGES.filter(isOpen).length;
+
   // ---- 유틸 ----
   const rand = (a, b) => a + Math.random() * (b - a);
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
@@ -61,7 +68,8 @@
   const pointer = { active: false, x: 0, y: 0 };
 
   // 난이도 진행도: 1단계 0 → 마지막 스테이지 1
-  const diff = () => stageIdx / (STAGES.length - 1);
+  const diff = () => STAGES[stageIdx].d; // 난이도: 1단계 0 → 20단계 1 → 30단계 1.8 (stages.js)
+  const rageAt = b => b.def.rageAt ?? 0.5;  // 분노 모드가 시작되는 체력 비율
 
   function resetField() {
     player = { x: W / 2, y: H * 0.72, r: 8, speed: 270, inv: 0, shield: false };
@@ -255,7 +263,7 @@
       const horizontal = Math.random() < 0.5;
       const len = horizontal ? H : W;
       const gap = rand(80, len - 160);
-      const gapW = 125 - diff() * 45;
+      const gapW = Math.max(66, 125 - diff() * 45);
       for (let v = 10; v < len; v += 26) {
         if (v > gap && v < gap + gapW) continue;
         if (horizontal) addBullet(fromTop ? -12 : W + 12, v, fromTop ? 0 : Math.PI, sp * 0.75, { r: 5 });
@@ -344,10 +352,11 @@
     const i = stageIdx;
     const d = diff();
     const power = 0.45 + d * 0.8;
-    const sp = 105 + d * 165;
-    const enraged = i >= 2 && b.hp <= b.maxHp / 2;
+    const dc = Math.min(d, 1.35); // 탄 개수는 지나치게 늘지 않도록 제한
+    const sp = 105 + Math.min(d, 1.4) * 165;
+    const enraged = i >= 2 && b.hp <= b.maxHp * rageAt(b);
     const rate = (enraged ? 0.75 : 1) / power;
-    const N = n => Math.max(2, Math.round(n * (0.5 + d * 1.1)));
+    const N = n => Math.max(2, Math.round(n * (0.5 + dc * 1.1)));
     const toP = Math.atan2(player.y - b.y, player.x - b.x);
     let cd = 1;
 
@@ -436,7 +445,7 @@
         cd = 1.5; break;
       }
       case 'lockOn': { // 보스 주위에 탄을 깔고 잠시 후 일제히 조준 돌진
-        const n = 2 + Math.floor(d * 4) + (enraged ? 1 : 0);
+        const n = 2 + Math.floor(dc * 4) + (enraged ? 1 : 0);
         for (let k = 0; k < n; k++) {
           const a = b.ang + (k / n) * TAU;
           addBullet(b.x + Math.cos(a) * (b.r + 24), b.y + Math.sin(a) * (b.r + 24), a, 60,
@@ -502,7 +511,7 @@
     if (b.entering || b.alpha < 0.6) return;
 
     // 분노 모드(체력 절반 이하): 주 패턴과 별개로 추가 패턴을 동시에 사용
-    if (b.def.rage && stageIdx >= 2 && b.hp <= b.maxHp / 2) {
+    if (b.def.rage && stageIdx >= 2 && b.hp <= b.maxHp * rageAt(b)) {
       b.rcd = (b.rcd ?? 1) - dt;
       if (b.rcd <= 0) b.rcd = firePattern(b, b.def.rage) * 1.8;
     }
@@ -514,7 +523,7 @@
       if (b.cd <= 0) b.cd = firePattern(b, b.pattern);
       if (b.patT > 4.5) {
         b.patT = 0;
-        b.rest = 0.5 + 0.9 * (1 - diff());
+        b.rest = Math.max(0.15, 0.5 + 0.9 * (1 - diff()));
         b.cd = 0.2;
         const list = b.def.patterns;
         b.pattern = b.def.random ? pick(list) : list[++b.patIdx % list.length];
@@ -524,7 +533,7 @@
     // 보스 공격 아이템 생성 (초반 스테이지일수록 자주)
     orbTimer -= dt;
     if (orbTimer <= 0 && orbs.length < 2) {
-      orbTimer = 1.4 + diff() * 1.2;
+      orbTimer = 1.4 + Math.min(diff(), 1) * 1.2;
       for (let k = 0; k < 20; k++) {
         const p = { x: rand(50, W - 50), y: rand(80, H - 50) };
         if (dist(p, b) > 170 && dist(p, player) > 110) { orbs.push({ x: p.x, y: p.y, t: 0, life: 9, type: pickItem() }); break; }
@@ -715,7 +724,7 @@
     score += 1000 * (stageIdx + 1);
     const gainedLife = lives < 5;
     lives = Math.min(5, lives + 1);
-    Sound.sfx(stageIdx === STAGES.length - 1 ? 'allClear' : 'stageClear');
+    Sound.sfx(stageIdx >= openCount() - 1 ? 'allClear' : 'stageClear');
     if (gainedLife) setTimeout(() => Sound.sfx('extraLife'), 1300);
     if (stageIdx + 2 > maxStage) {
       maxStage = Math.min(STAGES.length, stageIdx + 2);
@@ -745,6 +754,8 @@
   }
 
   function startGame(stageNum) {
+    const s = STAGES[stageNum - 1];
+    if (!s || !isOpen(s)) return; // 없는 스테이지이거나 아직 열리지 않은 해의 스테이지
     score = 0;
     lives = 3;
     startStage(stageNum - 1);
@@ -826,7 +837,9 @@
   async function shareScore(btn) {
     const pts = Math.floor(score).toLocaleString();
     const text = state === 'ending'
-      ? `DodgeVertex ${STAGES.length}개 스테이지 ALL CLEAR! 최종 점수 ${pts}점 🏆 너도 도전해봐 👉`
+      ? (stageIdx >= STAGES.length - 1
+        ? `DodgeVertex ${STAGES.length}개 스테이지 진짜 엔딩 달성! 최종 점수 ${pts}점 🏆 너도 도전해봐 👉`
+        : `DodgeVertex ${stageIdx + 1}개 스테이지 ALL CLEAR! 최종 점수 ${pts}점 🏆 너도 도전해봐 👉`)
       : `DodgeVertex STAGE ${stageIdx + 1}(${stage.name})까지 ${pts}점! 너도 도전해봐 👉`;
     const label = btn.textContent;
     const say = msg => { btn.textContent = msg; setTimeout(() => { btn.textContent = label; }, 1800); };
@@ -856,13 +869,41 @@
     Sound.sfx('start');
   }
 
+  // 엔딩: 지금 열린 마지막 스테이지를 깨면 나옴.
+  //  - 30단계(최종)를 깨면 진짜 엔딩
+  //  - 그 전이면 축하 + 다음 스페셜 스테이지가 열리는 날짜 안내
   function ending() {
     state = 'ending';
     const isNew = saveBest();
+    const cleared = stageIdx + 1;
+    const trueEnd = cleared >= STAGES.length;
+    const next = STAGES[cleared];
     Sound.playTheme(STAGES[1].music, false, 77);
+
+    const roll = STAGES.slice(0, cleared)
+      .map((s, i) => `<div class="cr-stage${s.special ? ' cr-special' : ''}"><b>STAGE ${i + 1}${s.special ? ' ★' : ''}</b> ${s.name}<br><span>BOSS · ${s.boss.name}</span></div>`)
+      .join('');
+    const tail = trueEnd
+      ? `<div class="cr-big">THE END</div><div>모든 차원을 넘어선 당신에게</div>`
+      : `<div class="cr-big">TO BE CONTINUED</div><div>SPECIAL STAGE ${cleared + 1} · ${next.openYear}. 1. 1 OPEN</div>`;
+    const notice = trueEnd
+      ? `<p class="ending-note">🏆 최종 보스 「${STAGES[STAGES.length - 1].boss.name}」까지 쓰러뜨렸습니다.<br>${STAGES.length}개 스테이지를 모두 정복한 <b>진짜 엔딩</b>입니다!</p>`
+      : `<p class="ending-note">🔓 다음 <b>스페셜 STAGE ${cleared + 1}</b>은(는)<br><b>${next.openYear}년 1월 1일</b>에 열립니다. 그때 다시 도전하세요!</p>`;
+
     showPanel(`
-      <h1>ALL CLEAR!</h1>
-      <p>${STAGES.length}개 스테이지와 모든 보스를 물리쳤습니다. 축하합니다!</p>
+      <h1>${trueEnd ? 'TRUE ENDING' : 'ALL CLEAR!'}</h1>
+      <p>${trueEnd
+        ? '축하합니다! 극악의 최종 스테이지까지 모두 돌파했습니다!'
+        : `지금 열려 있는 ${cleared}개 스테이지를 모두 클리어했습니다. 축하합니다!`}</p>
+      <div class="credits${trueEnd ? ' credits-true' : ''}"><div class="credits-roll">
+        <div class="cr-big">DODGE VERTEX</div>
+        ${roll}
+        <div class="cr-stage"><b>GAME</b> DodgeVertex<br><span>Made by jioyng</span></div>
+        <div class="cr-stage"><b>MUSIC &amp; SOUND</b><br><span>Web Audio 신시사이저</span></div>
+        <div class="cr-stage"><b>PLAYER</b><br><span>바로 당신!</span></div>
+        ${tail}
+      </div></div>
+      ${notice}
       <p class="score-line">최종 점수 ${Math.floor(score).toLocaleString()}${isNew ? ' · 신기록!' : ''}</p>
       <div class="btn-row">
         <button class="primary" data-action="start" data-stage="1">다시 도전</button>
@@ -924,7 +965,7 @@
 
       // 클리어 연출 후 자동으로 다음 스테이지
       if (phase === 'clear' && phaseT > 3.8) {
-        if (stageIdx >= STAGES.length - 1) ending();
+        if (stageIdx >= openCount() - 1) ending();
         else { startStage(stageIdx + 1); Sound.sfx('start'); }
       }
 
@@ -1325,7 +1366,7 @@
     const d = b.def;
     ctx.save();
     ctx.globalAlpha = b.alpha;
-    const enraged = b.hp <= b.maxHp / 2;
+    const enraged = b.hp <= b.maxHp * rageAt(b);
     const pulse = 1 + Math.sin(b.t * (enraged ? 10 : 4)) * 0.05;
     // 오라
     ctx.fillStyle = d.color;
@@ -1451,7 +1492,7 @@
     } else if (phase === 'boss' && boss) {
       ctx.fillStyle = 'rgba(148,163,184,0.2)';
       ctx.fillRect(bx, by, bw, 10);
-      ctx.fillStyle = boss.hp <= boss.maxHp / 2 ? '#f43f5e' : boss.def.color;
+      ctx.fillStyle = boss.hp <= boss.maxHp * rageAt(boss) ? '#f43f5e' : boss.def.color;
       ctx.fillRect(bx, by, bw * clamp(boss.dispHp / boss.maxHp, 0, 1), 10);
       // 체력 칸 구분선
       ctx.fillStyle = 'rgba(11,15,26,0.7)';
@@ -1636,12 +1677,16 @@
       drawBuffs();
       if (phase === 'intro') {
         const a = phaseT < 0.3 ? phaseT / 0.3 : phaseT > 2.6 ? Math.max(0, (3 - phaseT) / 0.4) : 1;
-        drawBanner(`STAGE ${stageIdx + 1}`, stage.name, stage.colors.accent, a);
+        if (stage.special) {
+          drawBanner(`★ SPECIAL ${stageIdx + 1} ★`, `${stage.name}${stage.final ? ' · 최종 스테이지' : ''}`, stage.colors.accent, a);
+        } else {
+          drawBanner(`STAGE ${stageIdx + 1}`, stage.name, stage.colors.accent, a);
+        }
       } else if (phase === 'warning') {
         drawBanner('⚠ WARNING ⚠', `보스 「${stage.boss.name}」 접근 중`, '#f43f5e', Math.floor(phaseT * 4) % 2 ? 0.55 : 1);
       } else if (phase === 'clear') {
         const secs = Math.round(stageTime);
-        const nextTxt = stageIdx < STAGES.length - 1 ? ` · 곧 STAGE ${stageIdx + 2}` : '';
+        const nextTxt = stageIdx < openCount() - 1 ? ` · 곧 STAGE ${stageIdx + 2}` : '';
         drawBanner('STAGE CLEAR!', `${secs}초 · 피격 ${stageHits}회 · +${Math.floor(score - stageScore0).toLocaleString()}점${nextTxt}`, '#fde047', Math.min(1, phaseT * 3));
       } else if (phase === 'boss' && bossHintT > 0) {
         ctx.save();
@@ -1684,12 +1729,21 @@
     Sound.stopMusic();
     let btns = '';
     STAGES.forEach((s, i) => {
-      const locked = i + 1 > maxStage;
-      btns += `<button class="stage-btn" data-action="start" data-stage="${i + 1}" ${locked ? 'disabled' : ''} title="${s.name}">${locked ? '🔒' : i + 1}</button>`;
+      const n = i + 1;
+      const cls = `stage-btn${s.special ? ' special' : ''}`;
+      if (!isOpen(s)) {
+        // 아직 오지 않은 해의 스페셜 스테이지
+        btns += `<button class="${cls} future" disabled title="${s.openYear}년 1월 1일 오픈"><span class="yr">${s.openYear}</span></button>`;
+      } else {
+        const locked = n > maxStage;
+        btns += `<button class="${cls}" data-action="start" data-stage="${n}" ${locked ? 'disabled' : ''} title="${s.name}">${locked ? '🔒' : n}</button>`;
+      }
     });
+    const nextSpecial = STAGES.find(s => !isOpen(s));
     showPanel(`
       <h1>DODGE<br><span class="h1-sub">VERTEX</span></h1>
-      <p>${STAGES.length}개의 스테이지를 돌파하고 보스를 물리치세요!</p>
+      <p>${openCount()}개의 스테이지를 돌파하고 보스를 물리치세요!</p>
+      ${nextSpecial ? `<p class="help">★ 스페셜 STAGE ${STAGES.indexOf(nextSpecial) + 1}이(가) ${nextSpecial.openYear}년 1월 1일에 열립니다 (매년 하나씩, ${STAGES.length}단계까지)</p>` : ''}
       <p class="score-line">${bestScore ? `최고 점수 ${bestScore.toLocaleString()}` : ''}</p>
       <button class="primary" data-action="start" data-stage="1">게임 시작</button>
       <div class="stage-select">
@@ -1864,10 +1918,11 @@
     hitBoss(n = 1) { for (let k = 0; k < n && boss; k++) damageBoss(); },
     item(type) { orbs.push({ x: player.x, y: player.y, t: 0, life: 9, type }); },
     boss() { if (state === 'playing') phaseT = stage.waveTime; },
-    info() { return { state, phase, stage: stageIdx + 1, lives, score: Math.floor(score), bullets: bullets.length, bossHp: boss && boss.hp }; },
+    info() { return { year: currentYear(), open: openCount(), state, phase, stage: stageIdx + 1, lives, score: Math.floor(score), bullets: bullets.length, bossHp: boss && boss.hp }; },
     pattern(name) { if (boss) { boss.pattern = name; boss.rest = 0; boss.patT = 0; boss.cd = 0; } },
     rage() { if (boss) boss.hp = Math.floor(boss.maxHp / 2); },
     effects() { return { freezeT, magnetT, miniT, ghostT, laserT, drones: drones.length, playerR: player.r, inv: player.inv, shield: player.shield }; },
+    sim(sec) { for (let k = 0; k < sec * 60; k++) update(1 / 60); return this.info(); },
     die() { if (state === 'playing') { player.inv = 0; player.shield = false; ghostT = 0; lives = 1; hurt(); } },
     kinds() { const c = {}; bullets.forEach(b => { c[b.kind] = (c[b.kind] || 0) + 1; }); return c; },
   };

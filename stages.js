@@ -12,7 +12,8 @@
 //   mineField summon
 //   rage: 보스 체력이 절반 이하일 때 동시에 추가로 쓰는 패턴
 //
-// 난이도 수치(waveTime, spawn, speed, hp, eventEvery)는 아래 STAGE_CURVE 에서 스테이지 번호로 계산합니다.
+// 난이도 수치(waveTime, spawn, speed, hp, eventEvery)는 아래 STAGE_CURVE 에서 계산합니다.
+// special: 스페셜 스테이지(27~30) · openYear: 열리는 해(1월 1일) · boss.rageAt: 분노 모드 시작 체력 비율(기본 0.5)
 const STAGES = [
   // ---------------- 1 ~ 10 ----------------
   {
@@ -204,17 +205,136 @@ const STAGES = [
     },
     music: { bpm: 160, root: 50, mode: 'harmonic', prog: [0, 1, 5, 4], arp: 'fast', lead: 'sawtooth', bass: 'sawtooth', drums: 'trap' },
   },
+
+  // ---------------- 21 ~ 26 ----------------
+  {
+    name: '산호 미궁', bg: 'waves',
+    colors: { bg: '#011a1f', bg2: '#04434f', line: 'rgba(45,212,191,0.2)', accent: '#2dd4bf' },
+    bullet: ['#fda4af', '#fef08a'],
+    kinds: { wave: 0.2, curve: 0.15, boomerang: 0.2, helix: 0.15, homing: 0.1, gravity: 0.1, lock: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: { name: '크라켄', sides: 0, color: '#14b8a6', r: 46, move: 'float', patterns: ['waveFan', 'boomerangFan', 'mineField', 'orbitBurst'], rage: 'helixStream' },
+    music: { bpm: 118, root: 51, mode: 'dorian', prog: [0, 4, 6, 3], arp: 'broken', lead: 'sine', bass: 'triangle', drums: 'half' },
+  },
+  {
+    name: '천둥 협곡', bg: 'rain',
+    colors: { bg: '#0a0a14', bg2: '#27213f', line: 'rgba(253,224,71,0.35)', accent: '#fde047' },
+    bullet: ['#e0e7ff', '#fb7185'],
+    kinds: { accel: 0.2, zigzag: 0.15, lock: 0.2, bounce: 0.15, split: 0.15, helix: 0.15 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: { name: '라이트닝 웜', sides: 3, color: '#eab308', r: 44, move: 'dash', patterns: ['sweep', 'lockOn', 'accelBurst', 'zigzagFan'], rage: 'cross' },
+    music: { bpm: 156, root: 49, mode: 'phrygian', prog: [0, 1, 4, 1], arp: 'fast', lead: 'sawtooth', bass: 'square', drums: 'trap' },
+  },
+  {
+    name: '홀로그램 신전', bg: 'scan',
+    colors: { bg: '#030316', bg2: '#1e1b4b', line: 'rgba(129,140,248,0.4)', accent: '#818cf8' },
+    bullet: ['#f0abfc', '#67e8f9'],
+    kinds: { curve: 0.15, homing: 0.15, lock: 0.15, boomerang: 0.15, helix: 0.2, split: 0.2 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: { name: '홀로 오라클', sides: 6, color: '#6366f1', r: 44, move: 'teleport', patterns: ['flower', 'orbitBurst', 'zigzagFan', 'homingVolley'], rage: 'lockOn' },
+    music: { bpm: 122, root: 58, mode: 'lydian', prog: [0, 1, 5, 4], arp: 'pulse', lead: 'triangle', bass: 'sine', drums: 'four' },
+  },
+  {
+    name: '극광 회랑', bg: 'aurora',
+    colors: { bg: '#010814', bg2: '#0b2239', line: 'rgba(244,114,182,0.32)', accent: '#f472b6' },
+    bullet: ['#bbf7d0', '#fde68a', '#c4b5fd'],
+    kinds: { wave: 0.15, curve: 0.15, gravity: 0.2, helix: 0.2, boomerang: 0.15, lock: 0.15 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: { name: '오로라 피닉스', sides: 5, color: '#ec4899', r: 46, move: 'figure8', patterns: ['helixStream', 'curveRing', 'gravityFountain', 'sweep'], rage: 'spiral' },
+    music: { bpm: 130, root: 55, mode: 'major', prog: [0, 3, 4, 5], arp: 'up', lead: 'triangle', bass: 'triangle', drums: 'four' },
+  },
+  {
+    name: '양자 회로', bg: 'circuit',
+    colors: { bg: '#00100c', bg2: '#03362a', line: 'rgba(52,211,153,0.22)', accent: '#34d399' },
+    bullet: ['#fca5a5', '#fde047', '#f0f9ff'],
+    kinds: { bounce: 0.2, zigzag: 0.15, lock: 0.15, split: 0.15, accel: 0.15, homing: 0.2 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: { name: '퀀텀 코어', sides: 8, color: '#10b981', r: 46, move: 'center', patterns: ['summon', 'bounceSpray', 'cross', 'lockOn'], rage: 'orbitBurst' },
+    music: { bpm: 146, root: 53, mode: 'harmonic', prog: [0, 5, 3, 4], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
+  },
+  {
+    name: '별의 무덤', bg: 'stars',
+    colors: { bg: '#04030a', bg2: '#1c1430', line: 'rgba(226,232,240,0.7)', accent: '#e2e8f0' },
+    bullet: ['#fbbf24', '#f472b6', '#93c5fd'],
+    kinds: { straight: 0.05, curve: 0.1, wave: 0.05, accel: 0.1, homing: 0.1, split: 0.1, zigzag: 0.1, lock: 0.1, boomerang: 0.1, gravity: 0.1, helix: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: {
+      name: '사신 성운', sides: 9, color: '#94a3b8', r: 48, move: 'orbit', random: true, rage: 'flower',
+      patterns: ['spiral', 'curveRing', 'homingVolley', 'splitBomb', 'helixStream', 'orbitBurst', 'boomerangFan', 'gravityFountain', 'sweep', 'mineField'],
+    },
+    music: { bpm: 136, root: 48, mode: 'minor', prog: [0, 6, 3, 4], arp: 'broken', lead: 'sawtooth', bass: 'sawtooth', drums: 'break' },
+  },
+
+  // ---------------- 27 ~ 30: 스페셜 스테이지 (매년 1월 1일에 하나씩 열림, 매우 어려움) ----------------
+  {
+    name: '붉은 일식', bg: 'void', special: true,
+    colors: { bg: '#0a0000', bg2: '#450a0a', line: 'rgba(252,165,165,0.6)', accent: '#ff4d4d' },
+    bullet: ['#ffffff', '#fecaca', '#fbbf24'],
+    kinds: { accel: 0.15, homing: 0.15, split: 0.15, lock: 0.2, boomerang: 0.1, helix: 0.15, bounce: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: {
+      name: '일식의 왕', sides: 0, color: '#dc2626', r: 50, move: 'teleport', random: true, rage: 'sweep', rageAt: 0.7,
+      patterns: ['aimed', 'ring', 'spiral', 'accelBurst', 'homingVolley', 'splitBomb', 'lockOn', 'flower', 'orbitBurst'],
+    },
+    music: { bpm: 158, root: 47, mode: 'harmonic', prog: [0, 1, 5, 4], arp: 'fast', lead: 'sawtooth', bass: 'sawtooth', drums: 'trap' },
+  },
+  {
+    name: '무한 회랑', bg: 'tunnel', special: true,
+    colors: { bg: '#00040a', bg2: '#082f49', line: 'rgba(125,211,252,0.6)', accent: '#7dd3fc' },
+    bullet: ['#fef9c3', '#f9a8d4', '#ffffff'],
+    kinds: { curve: 0.1, wave: 0.1, zigzag: 0.15, lock: 0.15, boomerang: 0.15, gravity: 0.1, helix: 0.15, bounce: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: {
+      name: '무한의 눈', sides: 0, color: '#0284c7', r: 50, move: 'orbit', random: true, rage: 'orbitBurst', rageAt: 0.75,
+      patterns: ['curveRing', 'waveFan', 'zigzagFan', 'helixStream', 'boomerangFan', 'gravityFountain', 'flower', 'sweep', 'mineField', 'lockOn'],
+    },
+    music: { bpm: 164, root: 52, mode: 'minor', prog: [0, 3, 6, 4], arp: 'fast', lead: 'square', bass: 'sawtooth', drums: 'trap' },
+  },
+  {
+    name: '코드 붕괴', bg: 'matrix', special: true,
+    colors: { bg: '#000500', bg2: '#052e16', line: 'rgba(250,204,21,0.85)', accent: '#facc15' },
+    bullet: ['#ffffff', '#ef4444', '#facc15'],
+    kinds: { straight: 0.05, accel: 0.15, homing: 0.15, bounce: 0.1, split: 0.15, zigzag: 0.1, lock: 0.2, helix: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: {
+      name: '시스템 오버로드', sides: 4, color: '#ca8a04', r: 50, move: 'dash', random: true, rage: 'summon', rageAt: 0.8,
+      patterns: ['aimed', 'cross', 'rain', 'rainUp', 'bounceSpray', 'splitBomb', 'zigzagFan', 'lockOn', 'sweep', 'mineField', 'summon'],
+    },
+    music: { bpm: 170, root: 50, mode: 'phrygian', prog: [0, 1, 0, 6], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
+  },
+  {
+    name: '차원 너머', bg: 'nebula', special: true, final: true,
+    colors: { bg: '#030008', bg2: '#2e0249', line: 'rgba(255,255,255,0.6)', accent: '#ffffff' },
+    bullet: ['#ffffff', '#f472b6', '#22d3ee', '#fbbf24', '#a78bfa'],
+    kinds: { straight: 0.04, curve: 0.08, wave: 0.06, accel: 0.1, homing: 0.1, bounce: 0.06, split: 0.1, zigzag: 0.08, lock: 0.12, boomerang: 0.1, gravity: 0.06, helix: 0.1 },
+    events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
+    boss: {
+      // 최종 보스: 처음부터 분노 패턴을 함께 씀
+      name: 'VERTEX', sides: 12, color: '#f5f3ff', r: 54, move: 'teleport', random: true, rage: 'lockOn', rageAt: 1,
+      patterns: ['aimed', 'ring', 'spiral', 'curveRing', 'waveFan', 'accelBurst', 'homingVolley', 'bounceSpray', 'cross', 'splitBomb',
+        'zigzagFan', 'helixStream', 'orbitBurst', 'boomerangFan', 'gravityFountain', 'flower', 'sweep', 'mineField', 'summon'],
+    },
+    music: { bpm: 176, root: 50, mode: 'harmonic', prog: [0, 5, 1, 4], arp: 'fast', lead: 'sawtooth', bass: 'sawtooth', drums: 'trap' },
+  },
 ];
 
-// ---- 난이도 곡선: 스테이지 번호(1~20)에 따라 부드럽게 어려워짐 ----
+// ---- 기본으로 열려 있는 스테이지 수. 27단계부터는 2027년, 2028년 ... 2030년 1월 1일에 하나씩 열림 ----
+const BASE_OPEN_STAGES = 26;
+STAGES.forEach((s, i) => { s.openYear = i + 1 > BASE_OPEN_STAGES ? 2000 + i + 1 : 0; });
+
+// ---- 난이도 곡선 ----
+// d: 1단계 0 → 20단계 1 (지금까지의 밸런스 그대로) → 26단계 1.21 → 스페셜 27~29단계 1.4~1.6 → 30단계 1.8(극악)
 (function STAGE_CURVE() {
-  const last = STAGES.length - 1;
+  const SPECIAL_D = { 27: 1.4, 28: 1.5, 29: 1.6, 30: 1.8 };
   STAGES.forEach((s, i) => {
-    const d = i / last; // 0(1단계) → 1(20단계)
-    s.waveTime = Math.round(18 + d * 10);              // 버티기 시간 18초 → 28초
-    s.spawn = +(0.56 - d * 0.32).toFixed(3);           // 탄 생성 간격 0.56초 → 0.24초
-    s.speed = Math.round(130 + d * 110);               // 탄 속도 130 → 240
-    s.eventEvery = s.events.length ? +(6.5 - d * 3.6).toFixed(2) : 99; // 이벤트 간격 6.5초 → 2.9초
-    s.boss.hp = Math.round(4 + d * 26);                // 보스 체력 4 → 30
+    const n = i + 1;
+    const d = SPECIAL_D[n] ?? (n <= 20 ? i / 19 : 1 + (n - 20) * 0.035);
+    s.d = d;
+    const over = Math.max(0, d - 1); // 20단계를 넘어선 정도
+    s.waveTime = Math.round(18 + Math.min(d, 1) * 10) + (s.special ? 4 : 0);        // 버티기 시간 18초 → 28초, 스페셜 32초
+    s.spawn = +((d <= 1 ? 0.56 - d * 0.32 : 0.24 - over * 0.12) * (s.special ? 0.85 : 1)).toFixed(3); // 탄 생성 간격 0.56 → 0.24 → 스페셜 0.17~0.12초
+    s.speed = Math.round(d <= 1 ? 130 + d * 110 : 240 + over * 80);                  // 탄 속도 130 → 240 → 304
+    s.eventEvery = s.events.length ? +Math.max(2, 6.5 - d * 3.6).toFixed(2) : 99;    // 이벤트 간격 6.5 → 2초
+    s.boss.hp = Math.round(d <= 1 ? 4 + d * 26 : 30 + over * 20);                    // 보스 체력 4 → 30 → 46
   });
 })();
