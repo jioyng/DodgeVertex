@@ -815,9 +815,32 @@
         <p class="continue-note">STAGE ${stageIdx + 1}부터 생명 3개로 다시 시작하고, 점수 ${Math.floor(stageScore0).toLocaleString()}점을 이어 갑니다</p>
         <div class="btn-row">
           <button data-action="start" data-stage="1">처음부터</button>
+          <button data-action="share">📤 점수 공유</button>
           <button data-action="title">타이틀</button>
         </div>`);
     }, 900);
+  }
+
+  // 점수 공유: 휴대폰은 공유 창(카카오톡, 문자 등), 지원하지 않으면 클립보드에 복사
+  const SHARE_URL = 'https://jioyng.github.io/DodgeVertex/';
+  async function shareScore(btn) {
+    const pts = Math.floor(score).toLocaleString();
+    const text = state === 'ending'
+      ? `DodgeVertex ${STAGES.length}개 스테이지 ALL CLEAR! 최종 점수 ${pts}점 🏆 너도 도전해봐 👉`
+      : `DodgeVertex STAGE ${stageIdx + 1}(${stage.name})까지 ${pts}점! 너도 도전해봐 👉`;
+    const label = btn.textContent;
+    const say = msg => { btn.textContent = msg; setTimeout(() => { btn.textContent = label; }, 1800); };
+    if (navigator.share) {
+      try { await navigator.share({ title: 'DodgeVertex', text, url: SHARE_URL }); }
+      catch (err) { if (err && err.name !== 'AbortError') say('공유 실패'); }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${SHARE_URL}`);
+      say('✅ 복사됨');
+    } catch {
+      say('공유 불가');
+    }
   }
 
   // 보상형 광고를 끝까지 보면 쓰러진 스테이지 처음부터, 그 스테이지 시작 때 점수로 이어 하기
@@ -843,6 +866,7 @@
       <p class="score-line">최종 점수 ${Math.floor(score).toLocaleString()}${isNew ? ' · 신기록!' : ''}</p>
       <div class="btn-row">
         <button class="primary" data-action="start" data-stage="1">다시 도전</button>
+        <button data-action="share">📤 점수 공유</button>
         <button data-action="title">타이틀</button>
       </div>`);
   }
@@ -1740,6 +1764,7 @@
       if (isTouch) { if (isStandalone()) lockLandscape(); else enterFullscreen(); }
       continueAfterAd();
     }
+    else if (a === 'share') shareScore(btn);
     else if (a === 'resume') resume();
     else if (a === 'title') showTitle();
     else if (a === 'sound') toggleSound();
