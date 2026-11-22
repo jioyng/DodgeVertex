@@ -228,6 +228,28 @@ const Sound = (() => {
         tone({ freq: 606, slideTo: 303, type: 'sine', start: t, dur: 0.5, vol: 0.25, dest: sfxGain });
         break;
       case 'mini': notes([88, 93, 98], 'square', 0.04, 0.1, 0.2); break;
+      case 'purge':
+        notes([84, 88, 91, 96, 100, 103], 'sine', 0.035, 0.18, 0.22);
+        noise({ start: t, dur: 0.4, vol: 0.2, dest: sfxGain, filter: 'highpass', freq: 5000 });
+        break;
+      case 'full': notes([72, 76, 79, 84, 88, 91], 'triangle', 0.06, 0.22, 0.3); break;
+      case 'twin':
+        tone({ freq: 330, slideTo: 1320, type: 'sawtooth', start: t, dur: 0.25, vol: 0.2, dest: sfxGain });
+        tone({ freq: 440, slideTo: 1760, type: 'sawtooth', start: t + 0.03, dur: 0.25, vol: 0.2, dest: sfxGain });
+        tone({ freq: 1320, type: 'square', start: t + 0.25, dur: 3.0, vol: 0.04, dest: sfxGain });
+        break;
+      case 'missile':
+        for (let k = 0; k < 5; k++) {
+          noise({ start: t + k * 0.12, dur: 0.18, vol: 0.3, dest: sfxGain, filter: 'bandpass', freq: 1500 });
+          tone({ freq: 200, slideTo: 600, type: 'square', start: t + k * 0.12, dur: 0.15, vol: 0.12, dest: sfxGain });
+        }
+        break;
+      case 'reflect': notes([91, 86, 91, 98], 'triangle', 0.05, 0.15, 0.25); break;
+      case 'star': notes([72, 79, 84, 79, 84, 88, 84, 88, 91], 'square', 0.05, 0.08, 0.18); break;
+      case 'vortex':
+        tone({ freq: 900, slideTo: 80, type: 'sawtooth', start: t, dur: 1.0, vol: 0.18, dest: sfxGain });
+        noise({ start: t, dur: 1.0, vol: 0.2, dest: sfxGain, filter: 'lowpass', freq: 900 });
+        break;
       case 'bossHit':
         tone({ freq: 220, slideTo: 110, type: 'square', start: t, dur: 0.12, vol: 0.35, dest: sfxGain });
         noise({ start: t, dur: 0.1, vol: 0.3, dest: sfxGain, filter: 'bandpass', freq: 3000 });

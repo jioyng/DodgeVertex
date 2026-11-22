@@ -66,6 +66,7 @@
   let slowT = 0, floaters = [];
   // 아이템 효과 타이머
   let freezeT = 0, magnetT = 0, miniT = 0, ghostT = 0, laserT = 0, laserTick = 0, drones = [], waveItemT = 0;
+  let twinT = 0, twinTick = 0, starT = 0, reflectT = 0, reflectCnt = 0, missiles = [], vortexes = [];
   const keys = new Set();
   const pointer = { active: false, x: 0, y: 0 };
 
@@ -77,6 +78,7 @@
     player = { x: W / 2, y: H * 0.72, r: 8, speed: 270, inv: 0, shield: false };
     slowT = 0;
     freezeT = 0; magnetT = 0; miniT = 0; ghostT = 0; laserT = 0; laserTick = 0;
+    twinT = 0; twinTick = 0; starT = 0; reflectT = 0; reflectCnt = 0; missiles = []; vortexes = [];
     drones = [];
     waveItemT = 7;
     floaters = [];
@@ -562,9 +564,17 @@
     magnet: { icon: '🧲', color: '#fda4af', w: 8, label: '자석! (아이템 끌어당김)' },
     ghost:  { icon: '👻', color: '#e2e8f0', w: 8, label: '유령화! (3초 무적)' },
     mini:   { icon: '🔹', color: '#60a5fa', w: 8, label: '축소! (8초간 판정 절반)' },
+    // ---- 추가 아이템 ----
+    purge:   { icon: '✨', color: '#fef08a', w: 6, label: '탄막 정화! 모든 탄이 점수로' },
+    full:    { icon: '🔋', color: '#4ade80', w: 3, label: '에너지 풀충전! 생명 MAX + 방패' },
+    twin:    { icon: '🔱', color: '#22d3ee', w: 8, label: '이중 레이저! (위로 발사, 탄 소멸)' },
+    missile: { icon: '🚀', color: '#fb923c', w: 7, label: '유도 미사일 5발!' },
+    reflect: { icon: '🔄', color: '#c4b5fd', w: 6, label: '반사 방벽! 닿는 탄을 되돌려 보냄' },
+    star:    { icon: '🌟', color: '#facc15', w: 5, label: '스타 파워! 무적 + 탄 부수기 + 가속' },
+    vortex:  { icon: '🌀', color: '#818cf8', w: 6, label: '소용돌이! 주변 탄을 빨아들임' },
   };
   // 버티기 구간에도 가끔 나오는 방어용 아이템 (보스가 없을 때는 공격 효과 없음)
-  const WAVE_ITEMS = ['shield', 'slow', 'freeze', 'ghost', 'mini', 'drone', 'heart'];
+  const WAVE_ITEMS = ['shield', 'slow', 'freeze', 'ghost', 'mini', 'drone', 'heart', 'purge', 'full', 'twin', 'reflect', 'star', 'vortex'];
 
   function pickItem(pool) {
     const w = {};
@@ -574,7 +584,11 @@
       if (k === 'shield' && player.shield) continue;
       if (k === 'drone' && drones.length >= 2) continue;
       if (k === 'laser' && laserT > 0) continue;
-      w[k] = k === 'heart' && pool ? v.w * 0.4 : v.w;
+      if (k === 'full' && lives >= 5 && player.shield) continue;
+      if (k === 'twin' && twinT > 0) continue;
+      if (k === 'star' && starT > 0) continue;
+      if (k === 'reflect' && reflectT > 0) continue;
+      w[k] = (k === 'heart' || k === 'full') && pool ? v.w * 0.4 : v.w;
     }
     return weighted(w);
   }
@@ -650,7 +664,62 @@
         miniT = 8;
         fireShot(o.x, o.y, 0, 1, it.color, 6);
         break;
+      case 'purge': {
+        // 모든 탄이 반짝이는 점수 조각이 되어 플레이어에게 빨려 들어옴
+        Sound.sfx('purge');
+        const n = bullets.length;
+        for (const b of bullets) {
+          const a = Math.atan2(player.y - b.y, player.x - b.x), d = Math.hypot(player.x - b.x, player.y - b.y);
+          if (particles.length < 900) particles.push({ x: b.x, y: b.y, vx: Math.cos(a) * d * 1.6, vy: Math.sin(a) * d * 1.6, life: 0.6, color: '#fef08a' });
+        }
+        bullets = []; hazards = [];
+        score += n * 10;
+        flash = 0.3;
+        if (n) floaters.push({ x: player.x, y: player.y - 40, text: `+${(n * 10).toLocaleString()}점`, color: '#fef08a', t: 0 });
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      }
+      case 'full':
+        Sound.sfx('full');
+        lives = 5;
+        player.shield = true;
+        burst(player.x, player.y, '#4ade80', 30, 260);
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      case 'twin':
+        Sound.sfx('twin');
+        twinT = 3.5;
+        twinTick = 0.2;
+        break;
+      case 'missile':
+        Sound.sfx('missile');
+        for (let k = 0; k < 5; k++) {
+          missiles.push({ x: player.x, y: player.y, ang: -Math.PI / 2 + (k - 2) * 0.45, sp: 160, t: -k * 0.12, life: 4 });
+        }
+        break;
+      case 'reflect':
+        Sound.sfx('reflect');
+        reflectT = 5;
+        reflectCnt = 0;
+        break;
+      case 'star':
+        Sound.sfx('star');
+        starT = 5;
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      case 'vortex':
+        Sound.sfx('vortex');
+        vortexes.push({ x: clamp(o.x, 60, W - 60), y: clamp(o.y, 120, H - 60), t: 0, life: 4, eaten: 0 });
+        break;
     }
+  }
+
+  // 반사 방벽에 튕겨 나간 탄 5개마다 보스에 1회 공격 (아이템 1개당 최대 5회)
+  function reflectHit(b) {
+    b.dead = true;
+    burst(b.x, b.y, '#c4b5fd', 3, 120);
+    reflectCnt++;
+    if (boss && boss.dying <= 0 && reflectCnt % 5 === 0 && reflectCnt <= 25) fireShot(player.x, player.y, 0, 1, '#c4b5fd', 6);
   }
 
   // 아이템 효과 진행 (레이저, 드론, 자석, 축소 등)
@@ -696,6 +765,84 @@
         o.x += (dx / dd) * m; o.y += (dy / dd) * m;
       }
     }
+
+    const bossOk = boss && boss.dying <= 0 && !boss.entering;
+
+    // 이중 레이저: 플레이어 양옆에서 위로 쏘는 두 줄기 빔. 지나가는 탄을 지우고, 보스와 겹치면 피해
+    if (twinT > 0) {
+      twinT -= dt;
+      for (const bx of [player.x - 16, player.x + 16]) {
+        for (const b of bullets) {
+          if (!b.dead && b.y < player.y && Math.abs(b.x - bx) < b.r + 5) { b.dead = true; burst(b.x, b.y, '#22d3ee', 2, 80); }
+        }
+      }
+      twinTick -= dt;
+      if (twinTick <= 0) {
+        twinTick = 0.6;
+        if (bossOk && boss.y < player.y && Math.abs(boss.x - player.x) < boss.r + 16) damageBoss(1);
+      }
+    }
+
+    // 유도 미사일: 보스를 향해 휘어져 날아감
+    for (const m of missiles) {
+      m.t += dt;
+      if (m.t < 0) { m.x = player.x; m.y = player.y; continue; }
+      if (bossOk) {
+        const want = Math.atan2(boss.y - m.y, boss.x - m.x);
+        let da = want - m.ang;
+        while (da > Math.PI) da -= TAU;
+        while (da < -Math.PI) da += TAU;
+        m.ang += clamp(da, -5 * dt, 5 * dt);
+      }
+      m.sp = Math.min(560, m.sp + 500 * dt);
+      m.x += Math.cos(m.ang) * m.sp * dt;
+      m.y += Math.sin(m.ang) * m.sp * dt;
+      if (particles.length < 900) particles.push({ x: m.x, y: m.y, vx: rand(-20, 20), vy: rand(-20, 20), life: 0.35, color: pick(['#fb923c', '#fde047', '#94a3b8']) });
+      if (bossOk && dist(m, boss) < boss.r) { m.dead = true; burst(m.x, m.y, '#fb923c', 12, 200); damageBoss(1); }
+      else if (m.t > m.life || m.x < -40 || m.x > W + 40 || m.y < -40 || m.y > H + 40) m.dead = true;
+    }
+    missiles = missiles.filter(m => !m.dead);
+
+    // 반사 방벽: 플레이어 가까이 온 탄을 튕겨 냄
+    if (reflectT > 0) {
+      reflectT -= dt;
+      for (const b of bullets) if (!b.dead && Math.hypot(b.x - player.x, b.y - player.y) < 46 + b.r) reflectHit(b);
+    }
+
+    // 스타 파워: 무적 + 닿는 탄 파괴 + 이동 속도 증가
+    starT = Math.max(0, starT - dt);
+    player.speed = starT > 0 ? 400 : 270;
+    if (starT > 0) {
+      for (const b of bullets) {
+        if (!b.dead && Math.hypot(b.x - player.x, b.y - player.y) < player.r * 2.6 + b.r) { b.dead = true; burst(b.x, b.y, '#facc15', 4, 140); score += 5; }
+      }
+    }
+
+    // 소용돌이: 주변 탄을 빨아들여 없애고, 끝나면 보스에게 폭발 피해
+    for (const v of vortexes) {
+      v.t += dt;
+      for (const b of bullets) {
+        if (b.dead) continue;
+        const dx = v.x - b.x, dy = v.y - b.y, d = Math.hypot(dx, dy);
+        if (d < 18) { b.dead = true; v.eaten++; continue; }
+        if (d < 200) {
+          const pull = (1 - d / 200) * 420 * dt + 40 * dt;
+          b.x += (dx / d) * pull - (dy / d) * pull * 0.6;
+          b.y += (dy / d) * pull + (dx / d) * pull * 0.6;
+        }
+      }
+      if (v.t >= v.life) {
+        v.dead = true;
+        burst(v.x, v.y, '#818cf8', 40, 300);
+        shake = Math.max(shake, 0.3);
+        Sound.sfx('bomb');
+        if (bossOk) {
+          const dmg = Math.min(3, 1 + Math.floor(v.eaten / 15));
+          for (let k = 0; k < dmg; k++) fireShot(v.x, v.y, k * 0.15, 1, '#818cf8', 7);
+        }
+      }
+    }
+    vortexes = vortexes.filter(v => !v.dead);
   }
 
   // 아이템 1개 = 보스 체력 1칸 이상. 체력이 정확히 0이 되어야만 쓰러집니다.
@@ -979,7 +1126,7 @@
       bullets = bullets.filter(b => !b.dead && b.x > -60 && b.x < W + 60 && b.y > -60 && b.y < H + 60);
 
       // 충돌
-      if (phase !== 'clear' && player.inv <= 0) {
+      if (phase !== 'clear' && player.inv <= 0 && starT <= 0) {
         for (const b of bullets) {
           const dx = b.x - player.x, dy = b.y - player.y, rr = b.r + player.r - 2;
           if (dx * dx + dy * dy < rr * rr) { hurt(); break; }
@@ -1457,6 +1604,11 @@
     if (magnetT > 0) list.push(['🧲', magnetT]);
     if (ghostT > 0) list.push(['👻', ghostT]);
     if (miniT > 0) list.push(['🔹', miniT]);
+    if (twinT > 0) list.push(['🔱', twinT]);
+    if (missiles.length) list.push(['🚀', `${missiles.length}발`]);
+    if (reflectT > 0) list.push(['🔄', reflectT]);
+    if (starT > 0) list.push(['🌟', starT]);
+    if (vortexes.length) list.push(['🌀', Math.max(...vortexes.map(v => v.life - v.t))]);
     if (!list.length) return;
     ctx.save();
     ctx.textAlign = 'right';
@@ -1470,7 +1622,7 @@
       ctx.fillText(icon, W - 62, y + 1);
       ctx.font = 'bold 16px "Segoe UI", sans-serif';
       ctx.fillStyle = '#e8ecf5';
-      ctx.fillText(t === '' ? '1회' : `${t.toFixed(1)}`, W - 18, y + 1);
+      ctx.fillText(typeof t === 'string' ? (t || '1회') : `${t.toFixed(1)}`, W - 18, y + 1);
     });
     ctx.restore();
   }
@@ -1624,6 +1776,51 @@
       ctx.restore();
     }
 
+    // 이중 레이저 빔
+    if (twinT > 0 && state !== 'over') {
+      ctx.save();
+      const wob = 1 + Math.sin(animT * 45) * 0.3;
+      const fade = Math.min(1, twinT * 3);
+      ctx.globalAlpha = fade;
+      [[player.x - 16, '#22d3ee'], [player.x + 16, '#f472b6']].forEach(([bx, col]) => {
+        ctx.fillStyle = col; ctx.globalAlpha = fade * 0.3;
+        ctx.fillRect(bx - 8 * wob, 0, 16 * wob, player.y - 6);
+        ctx.globalAlpha = fade; ctx.fillStyle = '#ffffff';
+        ctx.fillRect(bx - 2, 0, 4, player.y - 6);
+      });
+      ctx.restore();
+    }
+
+    // 소용돌이
+    for (const v of vortexes) {
+      ctx.save();
+      const a = Math.min(1, v.t * 3, (v.life - v.t) * 2 + 0.3);
+      ctx.globalAlpha = a;
+      for (let k = 0; k < 3; k++) {
+        ctx.strokeStyle = ['#818cf8', '#c084fc', '#e0e7ff'][k]; ctx.lineWidth = 3 - k * 0.6;
+        ctx.beginPath();
+        for (let s = 0; s < 40; s++) {
+          const ang = -animT * 5 + k * TAU / 3 + s * 0.2, d = 4 + s * 4.5 * (0.9 + 0.1 * Math.sin(animT * 3));
+          s ? ctx.lineTo(v.x + Math.cos(ang) * d, v.y + Math.sin(ang) * d) : ctx.moveTo(v.x + Math.cos(ang) * d, v.y + Math.sin(ang) * d);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#05010f'; ctx.beginPath(); ctx.arc(v.x, v.y, 12, 0, TAU); ctx.fill();
+      ctx.restore();
+    }
+
+    // 유도 미사일
+    for (const m of missiles) {
+      if (m.t < 0) continue;
+      ctx.save();
+      ctx.translate(m.x, m.y); ctx.rotate(m.ang);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-6, -4); ctx.lineTo(-6, 4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ef4444'; ctx.fillRect(-8, -5, 4, 10);
+      ctx.fillStyle = '#fde047'; ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(-14 - Math.random() * 6, 0); ctx.lineTo(-8, 3); ctx.fill();
+      ctx.restore();
+    }
+
     // 공격 탄
     for (const s of shots) {
       if (s.t < 0) continue;
@@ -1634,9 +1831,19 @@
     // 플레이어
     if (state !== 'title' && state !== 'over' && !(player.inv > 0 && Math.floor(player.inv * 12) % 2)) {
       ctx.save();
-      ctx.fillStyle = '#5eead4';
+      // 반사 방벽: 플레이어 주위를 도는 육각형 막
+      if (reflectT > 0) {
+        ctx.globalAlpha = reflectT < 1 && Math.floor(reflectT * 10) % 2 ? 0.3 : 0.8;
+        drawPolygon(player.x, player.y, 46, 6, animT * 2);
+        ctx.strokeStyle = '#c4b5fd'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = 'rgba(196,181,253,0.12)'; ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      // 스타 파워: 무지개색으로 반짝임
+      ctx.fillStyle = starT > 0 ? `hsl(${(animT * 600) % 360},100%,65%)` : '#5eead4';
+      if (starT > 0 && particles.length < 900) particles.push({ x: player.x + rand(-8, 8), y: player.y + rand(-8, 8), vx: rand(-60, 60), vy: rand(-60, 60), life: 0.4, color: ctx.fillStyle });
       ctx.globalAlpha = 0.3;
-      ctx.beginPath(); ctx.arc(player.x, player.y, player.r * 2.2, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(player.x, player.y, player.r * (starT > 0 ? 2.8 : 2.2), 0, TAU); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, TAU); ctx.fill();
       ctx.fillStyle = '#ffffff';
@@ -1708,7 +1915,7 @@
         ctx.font = 'bold 16px "Segoe UI", "Malgun Gothic", sans-serif';
         ctx.fillStyle = '#fde047';
         ctx.fillText('★ 아이템을 먹으면 보스를 공격합니다!', W / 2, H - 46);
-        ctx.fillText('⚡3연타 💣폭탄 🔆레이저 🛸드론 ❄빙결 👻무적 등 12종', W / 2, H - 22);
+        ctx.fillText('🔱이중레이저 🚀미사일 🌀소용돌이 🌟스타 등 19종', W / 2, H - 22);
         ctx.restore();
       }
     }
@@ -1768,7 +1975,7 @@
       ${menuRow()}
       <p class="help">${isTouch
         ? '화면 아무 곳이나 손가락으로 드래그해 이동 · ⏸ 버튼으로 일시정지'
-        : '이동: 방향키 / WASD / 마우스 · 일시정지: P · 소리: M'}<br>보스전에서는 아이템(★⚡💣🔆🛸 등 12종)을 먹어 보스를 공격하세요.</p>`);
+        : '이동: 방향키 / WASD / 마우스 · 일시정지: P · 소리: M'}<br>보스전에서는 아이템(★⚡💣🔱🚀🌀 등 19종)을 먹어 보스를 공격하세요.</p>`);
   }
 
   // ---- 메뉴 공통 버튼 (소리 / 앱 설치 / 전체화면) ----
@@ -1963,8 +2170,9 @@
     info() { return { year: currentYear(), open: openCount(), state, phase, stage: stageIdx + 1, lives, score: Math.floor(score), bullets: bullets.length, bossHp: boss && boss.hp }; },
     pattern(name) { if (boss) { boss.pattern = name; boss.rest = 0; boss.patT = 0; boss.cd = 0; } },
     rage() { if (boss) boss.hp = Math.floor(boss.maxHp / 2); },
-    effects() { return { freezeT, magnetT, miniT, ghostT, laserT, drones: drones.length, playerR: player.r, inv: player.inv, shield: player.shield }; },
+    effects() { return { twinT, starT, reflectT, reflectCnt, missiles: missiles.length, vortexes: vortexes.length, speed: player.speed, freezeT, magnetT, miniT, ghostT, laserT, drones: drones.length, playerR: player.r, inv: player.inv, shield: player.shield }; },
     sim(sec) { for (let k = 0; k < sec * 60; k++) update(1 / 60); return this.info(); },
+    under() { if (boss) { player.x = boss.x; player.y = Math.min(H - 20, boss.y + 220); } },
     die() { if (state === 'playing') { player.inv = 0; player.shield = false; ghostT = 0; lives = 1; hurt(); } },
     kinds() { const c = {}; bullets.forEach(b => { c[b.kind] = (c[b.kind] || 0) + 1; }); return c; },
   };
