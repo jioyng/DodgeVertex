@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "DodgeVertax - 세로 닷지 게임",
+  "short_name": "DodgeVertax",
+  "description": "세로 화면으로 즐기는 닷지 게임: 10개 스테이지와 보스를 돌파하세요",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#0b0f1a",
+  "theme_color": "#0b0f1a",
+  "lang": "ko",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
