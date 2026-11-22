@@ -68,6 +68,7 @@
 |---|---|
 | `index.html`, `style.css` | 화면 |
 | `game.js` | 게임 엔진 (탄 패턴, 보스, 아이템, 배경) |
+| `bossart.js` | 보스 30종의 외형 (stages.js 의 `look` 이름별 그리기) |
 | `stages.js` | 30개 스테이지 설정 (맨 아래 `STAGE_CURVE`에서 난이도 곡선 조절) |
 | `audio.js` | 효과음과 배경음악 (Web Audio API로 합성) |
 | `manifest.webmanifest`, `sw.js`, `pwa.js`, `icons/` | PWA 설치와 오프라인 실행 |

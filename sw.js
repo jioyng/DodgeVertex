@@ -1,7 +1,7 @@
 // 오프라인 실행을 위한 서비스 워커
 // 네트워크 우선: 서버가 켜져 있으면 항상 최신 파일을 받고 캐시를 갱신,
 // 오프라인이거나 서버가 꺼져 있으면 캐시된 파일로 실행합니다.
-const CACHE = 'dodgevertex-v5';
+const CACHE = 'dodgevertex-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './game.js',
   './pwa.js',
   './ads.js',
+  './bossart.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

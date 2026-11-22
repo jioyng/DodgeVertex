@@ -22,7 +22,7 @@ const STAGES = [
     bullet: ['#f87171', '#fbbf24'],
     kinds: { straight: 1 },
     events: [],
-    boss: { name: '큐브 가디언', sides: 4, color: '#38bdf8', r: 34, move: 'sway', patterns: ['aimed', 'ring'] },
+    boss: { name: '큐브 가디언', look: 'cube', sides: 4, color: '#38bdf8', r: 34, move: 'sway', patterns: ['aimed', 'ring'] },
     music: { bpm: 118, root: 57, mode: 'minor', prog: [0, 5, 2, 6], arp: 'up', lead: 'square', bass: 'triangle', drums: 'four' },
   },
   {
@@ -31,7 +31,7 @@ const STAGES = [
     bullet: ['#fb923c', '#f472b6'],
     kinds: { straight: 0.6, curve: 0.4 },
     events: ['fan'],
-    boss: { name: '별의 직조자', sides: 5, color: '#facc15', r: 36, move: 'float', patterns: ['curveRing', 'aimed', 'spiral'] },
+    boss: { name: '별의 직조자', look: 'star', sides: 5, color: '#facc15', r: 36, move: 'float', patterns: ['curveRing', 'aimed', 'spiral'] },
     music: { bpm: 124, root: 60, mode: 'major', prog: [0, 4, 5, 3], arp: 'broken', lead: 'triangle', bass: 'triangle', drums: 'half' },
   },
   {
@@ -40,7 +40,7 @@ const STAGES = [
     bullet: ['#a5f3fc', '#f0abfc'],
     kinds: { straight: 0.35, curve: 0.25, wave: 0.4 },
     events: ['fan', 'wall'],
-    boss: { name: '심연의 해파리', sides: 0, color: '#c084fc', r: 38, move: 'float', patterns: ['waveFan', 'ring', 'rainUp'] },
+    boss: { name: '심연의 해파리', look: 'jelly', sides: 0, color: '#c084fc', r: 38, move: 'float', patterns: ['waveFan', 'ring', 'rainUp'] },
     music: { bpm: 108, root: 50, mode: 'dorian', prog: [0, 3, 4, 0], arp: 'broken', lead: 'sine', bass: 'sine', drums: 'half' },
   },
   {
@@ -49,7 +49,7 @@ const STAGES = [
     bullet: ['#fde047', '#e879f9'],
     kinds: { straight: 0.25, curve: 0.2, wave: 0.2, accel: 0.35 },
     events: ['fan', 'wall', 'turretRing'],
-    boss: { name: '스톰 아이', sides: 6, color: '#a78bfa', r: 38, move: 'dash', patterns: ['accelBurst', 'rain', 'aimed'] },
+    boss: { name: '스톰 아이', look: 'storm', sides: 6, color: '#a78bfa', r: 38, move: 'dash', patterns: ['accelBurst', 'rain', 'aimed'] },
     music: { bpm: 136, root: 52, mode: 'phrygian', prog: [0, 1, 0, 6], arp: 'fast', lead: 'sawtooth', bass: 'square', drums: 'break' },
   },
   {
@@ -58,7 +58,7 @@ const STAGES = [
     bullet: ['#fef08a', '#67e8f9'],
     kinds: { straight: 0.25, curve: 0.2, wave: 0.15, accel: 0.15, homing: 0.25 },
     events: ['fan', 'turretRing', 'turretSpiral'],
-    boss: { name: '펄스 하트', sides: 0, color: '#f43f5e', r: 40, move: 'center', patterns: ['ring', 'homingVolley', 'spiral'], rage: 'aimed' },
+    boss: { name: '펄스 하트', look: 'heart', sides: 0, color: '#f43f5e', r: 40, move: 'center', patterns: ['ring', 'homingVolley', 'spiral'], rage: 'aimed' },
     music: { bpm: 128, root: 53, mode: 'minor', prog: [0, 6, 5, 4], arp: 'pulse', lead: 'square', bass: 'sawtooth', drums: 'four' },
   },
   {
@@ -67,7 +67,7 @@ const STAGES = [
     bullet: ['#f87171', '#fde047'],
     kinds: { straight: 0.2, curve: 0.15, wave: 0.1, accel: 0.15, homing: 0.15, bounce: 0.25 },
     events: ['wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '파이어월', sides: 8, color: '#22c55e', r: 40, move: 'sway', patterns: ['bounceSpray', 'cross', 'aimed'], rage: 'ring' },
+    boss: { name: '파이어월', look: 'firewall', sides: 8, color: '#22c55e', r: 40, move: 'sway', patterns: ['bounceSpray', 'cross', 'aimed'], rage: 'ring' },
     music: { bpm: 140, root: 55, mode: 'harmonic', prog: [0, 5, 3, 4], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
   },
   {
@@ -76,7 +76,7 @@ const STAGES = [
     bullet: ['#fde047', '#fca5a5'],
     kinds: { straight: 0.2, curve: 0.15, accel: 0.15, homing: 0.1, bounce: 0.15, split: 0.25 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '마그마 타이탄', sides: 7, color: '#ef4444', r: 44, move: 'dash', patterns: ['splitBomb', 'gravityFountain', 'ring'], rage: 'rain' },
+    boss: { name: '마그마 타이탄', look: 'golem', sides: 7, color: '#ef4444', r: 44, move: 'dash', patterns: ['splitBomb', 'gravityFountain', 'ring'], rage: 'rain' },
     music: { bpm: 132, root: 45, mode: 'phrygian', prog: [0, 1, 6, 0], arp: 'up', lead: 'sawtooth', bass: 'sawtooth', drums: 'break' },
   },
   {
@@ -85,7 +85,7 @@ const STAGES = [
     bullet: ['#f0abfc', '#fde68a'],
     kinds: { straight: 0.1, curve: 0.15, wave: 0.15, accel: 0.1, homing: 0.1, bounce: 0.1, split: 0.1, zigzag: 0.2 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '프리즘', sides: 3, color: '#67e8f9', r: 42, move: 'orbit', patterns: ['spiral', 'curveRing', 'zigzagFan'], rage: 'flower' },
+    boss: { name: '프리즘', look: 'prism', sides: 3, color: '#67e8f9', r: 42, move: 'orbit', patterns: ['spiral', 'curveRing', 'zigzagFan'], rage: 'flower' },
     music: { bpm: 120, root: 62, mode: 'lydian', prog: [0, 1, 4, 5], arp: 'broken', lead: 'triangle', bass: 'triangle', drums: 'half' },
   },
   {
@@ -94,7 +94,7 @@ const STAGES = [
     bullet: ['#fda4af', '#fcd34d'],
     kinds: { straight: 0.1, curve: 0.15, wave: 0.15, accel: 0.1, homing: 0.1, bounce: 0.1, zigzag: 0.15, helix: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '하늘 뱀', sides: 0, color: '#a3e635', r: 40, move: 'figure8', patterns: ['waveFan', 'helixStream', 'cross', 'spiral'], rage: 'homingVolley' },
+    boss: { name: '하늘 뱀', look: 'serpent', sides: 0, color: '#a3e635', r: 40, move: 'figure8', patterns: ['waveFan', 'helixStream', 'cross', 'spiral'], rage: 'homingVolley' },
     music: { bpm: 124, root: 57, mode: 'dorian', prog: [0, 4, 3, 6], arp: 'fast', lead: 'triangle', bass: 'sine', drums: 'four' },
   },
   {
@@ -104,7 +104,7 @@ const STAGES = [
     kinds: { straight: 0.1, curve: 0.15, wave: 0.1, accel: 0.15, homing: 0.1, bounce: 0.1, split: 0.1, zigzag: 0.1, helix: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '공허의 군주', sides: 12, color: '#e11d48', r: 46, move: 'teleport', random: true, rage: 'ring',
+      name: '공허의 군주', look: 'crown', sides: 12, color: '#e11d48', r: 46, move: 'teleport', random: true, rage: 'ring',
       patterns: ['aimed', 'ring', 'spiral', 'curveRing', 'waveFan', 'accelBurst', 'homingVolley', 'cross', 'splitBomb', 'zigzagFan', 'helixStream'],
     },
     music: { bpm: 150, root: 50, mode: 'harmonic', prog: [0, 5, 1, 4], arp: 'fast', lead: 'sawtooth', bass: 'sawtooth', drums: 'trap' },
@@ -117,7 +117,7 @@ const STAGES = [
     bullet: ['#22d3ee', '#fde047'],
     kinds: { straight: 0.15, curve: 0.15, wave: 0.15, accel: 0.1, helix: 0.2, lock: 0.25 },
     events: ['fan', 'wall', 'turretRing'],
-    boss: { name: '네온 드래곤', sides: 0, color: '#d946ef', r: 42, move: 'figure8', patterns: ['orbitBurst', 'aimed', 'sweep'], rage: 'ring' },
+    boss: { name: '네온 드래곤', look: 'dragon', sides: 0, color: '#d946ef', r: 42, move: 'figure8', patterns: ['orbitBurst', 'aimed', 'sweep'], rage: 'ring' },
     music: { bpm: 112, root: 57, mode: 'minor', prog: [0, 5, 3, 4], arp: 'up', lead: 'sawtooth', bass: 'sawtooth', drums: 'four' },
   },
   {
@@ -126,7 +126,7 @@ const STAGES = [
     bullet: ['#f0fdf4', '#fde047'],
     kinds: { straight: 0.15, accel: 0.15, zigzag: 0.15, homing: 0.1, lock: 0.25, bounce: 0.2 },
     events: ['wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '코드 센티넬', sides: 4, color: '#16a34a', r: 42, move: 'dash', patterns: ['lockOn', 'cross', 'rain'], rage: 'aimed' },
+    boss: { name: '코드 센티넬', look: 'sentinel', sides: 4, color: '#16a34a', r: 42, move: 'dash', patterns: ['lockOn', 'cross', 'rain'], rage: 'aimed' },
     music: { bpm: 142, root: 52, mode: 'phrygian', prog: [0, 1, 3, 1], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
   },
   {
@@ -135,7 +135,7 @@ const STAGES = [
     bullet: ['#fbcfe8', '#93c5fd'],
     kinds: { straight: 0.1, curve: 0.2, wave: 0.1, homing: 0.1, boomerang: 0.3, helix: 0.2 },
     events: ['fan', 'turretRing', 'turretSpiral'],
-    boss: { name: '블랙홀', sides: 0, color: '#7c3aed', r: 44, move: 'center', patterns: ['boomerangFan', 'orbitBurst', 'spiral'], rage: 'homingVolley' },
+    boss: { name: '블랙홀', look: 'blackhole', sides: 0, color: '#7c3aed', r: 44, move: 'center', patterns: ['boomerangFan', 'orbitBurst', 'spiral'], rage: 'homingVolley' },
     music: { bpm: 104, root: 49, mode: 'dorian', prog: [0, 6, 4, 5], arp: 'broken', lead: 'sine', bass: 'sine', drums: 'half' },
   },
   {
@@ -144,7 +144,7 @@ const STAGES = [
     bullet: ['#e0f2fe', '#a78bfa'],
     kinds: { straight: 0.1, wave: 0.15, zigzag: 0.15, gravity: 0.3, lock: 0.15, boomerang: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '서리 거인', sides: 6, color: '#60a5fa', r: 46, move: 'sway', patterns: ['gravityFountain', 'curveRing', 'lockOn'], rage: 'zigzagFan' },
+    boss: { name: '서리 거인', look: 'ice', sides: 6, color: '#60a5fa', r: 46, move: 'sway', patterns: ['gravityFountain', 'curveRing', 'lockOn'], rage: 'zigzagFan' },
     music: { bpm: 116, root: 59, mode: 'lydian', prog: [0, 2, 4, 1], arp: 'broken', lead: 'triangle', bass: 'triangle', drums: 'half' },
   },
   {
@@ -153,7 +153,7 @@ const STAGES = [
     bullet: ['#fef9c3', '#fca5a5'],
     kinds: { accel: 0.15, split: 0.15, gravity: 0.25, helix: 0.2, homing: 0.1, boomerang: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '불사조', sides: 5, color: '#f97316', r: 44, move: 'figure8', patterns: ['helixStream', 'gravityFountain', 'splitBomb'], rage: 'ring' },
+    boss: { name: '불사조', look: 'phoenix', sides: 5, color: '#f97316', r: 44, move: 'figure8', patterns: ['helixStream', 'gravityFountain', 'splitBomb'], rage: 'ring' },
     music: { bpm: 138, root: 48, mode: 'harmonic', prog: [0, 5, 6, 4], arp: 'up', lead: 'sawtooth', bass: 'sawtooth', drums: 'break' },
   },
   {
@@ -162,7 +162,7 @@ const STAGES = [
     bullet: ['#fde68a', '#f9a8d4'],
     kinds: { curve: 0.15, zigzag: 0.15, lock: 0.2, boomerang: 0.15, helix: 0.15, gravity: 0.1, bounce: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '크로노스', sides: 8, color: '#0ea5e9', r: 44, move: 'orbit', patterns: ['flower', 'lockOn', 'boomerangFan'], rage: 'sweep' },
+    boss: { name: '크로노스', look: 'clock', sides: 8, color: '#0ea5e9', r: 44, move: 'orbit', patterns: ['flower', 'lockOn', 'boomerangFan'], rage: 'sweep' },
     music: { bpm: 126, root: 54, mode: 'minor', prog: [0, 3, 5, 4], arp: 'pulse', lead: 'square', bass: 'square', drums: 'four' },
   },
   {
@@ -171,7 +171,7 @@ const STAGES = [
     bullet: ['#fef08a', '#c4b5fd'],
     kinds: { accel: 0.2, zigzag: 0.15, lock: 0.2, homing: 0.15, helix: 0.15, split: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '썬더 버드', sides: 3, color: '#facc15', r: 42, move: 'dash', patterns: ['sweep', 'accelBurst', 'helixStream'], rage: 'lockOn' },
+    boss: { name: '썬더 버드', look: 'bird', sides: 3, color: '#facc15', r: 42, move: 'dash', patterns: ['sweep', 'accelBurst', 'helixStream'], rage: 'lockOn' },
     music: { bpm: 152, root: 50, mode: 'phrygian', prog: [0, 1, 6, 1], arp: 'fast', lead: 'sawtooth', bass: 'square', drums: 'trap' },
   },
   {
@@ -180,7 +180,7 @@ const STAGES = [
     bullet: ['#f8fafc', '#a5b4fc', '#f0abfc'],
     kinds: { curve: 0.15, homing: 0.15, split: 0.15, boomerang: 0.15, gravity: 0.1, lock: 0.15, helix: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '게이트 키퍼', sides: 10, color: '#3b82f6', r: 46, move: 'teleport', patterns: ['mineField', 'orbitBurst', 'cross'], rage: 'flower' },
+    boss: { name: '게이트 키퍼', look: 'gate', sides: 10, color: '#3b82f6', r: 46, move: 'teleport', patterns: ['mineField', 'orbitBurst', 'cross'], rage: 'flower' },
     music: { bpm: 132, root: 47, mode: 'harmonic', prog: [0, 3, 1, 4], arp: 'broken', lead: 'square', bass: 'sawtooth', drums: 'break' },
   },
   {
@@ -189,7 +189,7 @@ const STAGES = [
     bullet: ['#fef3c7', '#f472b6', '#67e8f9'],
     kinds: { curve: 0.1, wave: 0.1, accel: 0.1, homing: 0.1, split: 0.1, lock: 0.15, boomerang: 0.1, gravity: 0.1, helix: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '초신성', sides: 0, color: '#f59e0b', r: 48, move: 'center', patterns: ['flower', 'gravityFountain', 'summon', 'helixStream'], rage: 'orbitBurst' },
+    boss: { name: '초신성', look: 'sun', sides: 0, color: '#f59e0b', r: 48, move: 'center', patterns: ['flower', 'gravityFountain', 'summon', 'helixStream'], rage: 'orbitBurst' },
     music: { bpm: 140, root: 56, mode: 'major', prog: [0, 5, 3, 4], arp: 'fast', lead: 'triangle', bass: 'sawtooth', drums: 'four' },
   },
   {
@@ -199,7 +199,7 @@ const STAGES = [
     kinds: { straight: 0.05, curve: 0.1, wave: 0.05, accel: 0.1, homing: 0.1, bounce: 0.05, split: 0.1, zigzag: 0.1, lock: 0.1, boomerang: 0.1, gravity: 0.05, helix: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '차원의 지배자', sides: 12, color: '#be123c', r: 50, move: 'teleport', random: true, rage: 'lockOn',
+      name: '차원의 지배자', look: 'crown', eyes: 3, sides: 12, color: '#be123c', r: 50, move: 'teleport', random: true, rage: 'lockOn',
       patterns: ['aimed', 'ring', 'spiral', 'curveRing', 'accelBurst', 'homingVolley', 'cross', 'splitBomb', 'helixStream',
         'orbitBurst', 'lockOn', 'boomerangFan', 'gravityFountain', 'flower', 'sweep', 'mineField', 'summon'],
     },
@@ -213,7 +213,7 @@ const STAGES = [
     bullet: ['#fda4af', '#fef08a'],
     kinds: { wave: 0.2, curve: 0.15, boomerang: 0.2, helix: 0.15, homing: 0.1, gravity: 0.1, lock: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '크라켄', sides: 0, color: '#14b8a6', r: 46, move: 'float', patterns: ['waveFan', 'boomerangFan', 'mineField', 'orbitBurst'], rage: 'helixStream' },
+    boss: { name: '크라켄', look: 'kraken', sides: 0, color: '#14b8a6', r: 46, move: 'float', patterns: ['waveFan', 'boomerangFan', 'mineField', 'orbitBurst'], rage: 'helixStream' },
     music: { bpm: 118, root: 51, mode: 'dorian', prog: [0, 4, 6, 3], arp: 'broken', lead: 'sine', bass: 'triangle', drums: 'half' },
   },
   {
@@ -222,7 +222,7 @@ const STAGES = [
     bullet: ['#e0e7ff', '#fb7185'],
     kinds: { accel: 0.2, zigzag: 0.15, lock: 0.2, bounce: 0.15, split: 0.15, helix: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '라이트닝 웜', sides: 3, color: '#eab308', r: 44, move: 'dash', patterns: ['sweep', 'lockOn', 'accelBurst', 'zigzagFan'], rage: 'cross' },
+    boss: { name: '라이트닝 웜', look: 'serpent', spark: true, sides: 3, color: '#eab308', r: 44, move: 'dash', patterns: ['sweep', 'lockOn', 'accelBurst', 'zigzagFan'], rage: 'cross' },
     music: { bpm: 156, root: 49, mode: 'phrygian', prog: [0, 1, 4, 1], arp: 'fast', lead: 'sawtooth', bass: 'square', drums: 'trap' },
   },
   {
@@ -231,7 +231,7 @@ const STAGES = [
     bullet: ['#f0abfc', '#67e8f9'],
     kinds: { curve: 0.15, homing: 0.15, lock: 0.15, boomerang: 0.15, helix: 0.2, split: 0.2 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '홀로 오라클', sides: 6, color: '#6366f1', r: 44, move: 'teleport', patterns: ['flower', 'orbitBurst', 'zigzagFan', 'homingVolley'], rage: 'lockOn' },
+    boss: { name: '홀로 오라클', look: 'oracle', sides: 6, color: '#6366f1', r: 44, move: 'teleport', patterns: ['flower', 'orbitBurst', 'zigzagFan', 'homingVolley'], rage: 'lockOn' },
     music: { bpm: 122, root: 58, mode: 'lydian', prog: [0, 1, 5, 4], arp: 'pulse', lead: 'triangle', bass: 'sine', drums: 'four' },
   },
   {
@@ -240,7 +240,7 @@ const STAGES = [
     bullet: ['#bbf7d0', '#fde68a', '#c4b5fd'],
     kinds: { wave: 0.15, curve: 0.15, gravity: 0.2, helix: 0.2, boomerang: 0.15, lock: 0.15 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '오로라 피닉스', sides: 5, color: '#ec4899', r: 46, move: 'figure8', patterns: ['helixStream', 'curveRing', 'gravityFountain', 'sweep'], rage: 'spiral' },
+    boss: { name: '오로라 피닉스', look: 'phoenix', wing: ['#f472b6', '#a78bfa', '#86efac'], sides: 5, color: '#ec4899', r: 46, move: 'figure8', patterns: ['helixStream', 'curveRing', 'gravityFountain', 'sweep'], rage: 'spiral' },
     music: { bpm: 130, root: 55, mode: 'major', prog: [0, 3, 4, 5], arp: 'up', lead: 'triangle', bass: 'triangle', drums: 'four' },
   },
   {
@@ -249,7 +249,7 @@ const STAGES = [
     bullet: ['#fca5a5', '#fde047', '#f0f9ff'],
     kinds: { bounce: 0.2, zigzag: 0.15, lock: 0.15, split: 0.15, accel: 0.15, homing: 0.2 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
-    boss: { name: '퀀텀 코어', sides: 8, color: '#10b981', r: 46, move: 'center', patterns: ['summon', 'bounceSpray', 'cross', 'lockOn'], rage: 'orbitBurst' },
+    boss: { name: '퀀텀 코어', look: 'atom', sides: 8, color: '#10b981', r: 46, move: 'center', patterns: ['summon', 'bounceSpray', 'cross', 'lockOn'], rage: 'orbitBurst' },
     music: { bpm: 146, root: 53, mode: 'harmonic', prog: [0, 5, 3, 4], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
   },
   {
@@ -259,7 +259,7 @@ const STAGES = [
     kinds: { straight: 0.05, curve: 0.1, wave: 0.05, accel: 0.1, homing: 0.1, split: 0.1, zigzag: 0.1, lock: 0.1, boomerang: 0.1, gravity: 0.1, helix: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '사신 성운', sides: 9, color: '#94a3b8', r: 48, move: 'orbit', random: true, rage: 'flower',
+      name: '사신 성운', look: 'reaper', sides: 9, color: '#94a3b8', r: 48, move: 'orbit', random: true, rage: 'flower',
       patterns: ['spiral', 'curveRing', 'homingVolley', 'splitBomb', 'helixStream', 'orbitBurst', 'boomerangFan', 'gravityFountain', 'sweep', 'mineField'],
     },
     music: { bpm: 136, root: 48, mode: 'minor', prog: [0, 6, 3, 4], arp: 'broken', lead: 'sawtooth', bass: 'sawtooth', drums: 'break' },
@@ -273,7 +273,7 @@ const STAGES = [
     kinds: { accel: 0.15, homing: 0.15, split: 0.15, lock: 0.2, boomerang: 0.1, helix: 0.15, bounce: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '일식의 왕', sides: 0, color: '#dc2626', r: 50, move: 'teleport', random: true, rage: 'sweep', rageAt: 0.7,
+      name: '일식의 왕', look: 'eclipse', sides: 0, color: '#dc2626', r: 50, move: 'teleport', random: true, rage: 'sweep', rageAt: 0.7,
       patterns: ['aimed', 'ring', 'spiral', 'accelBurst', 'homingVolley', 'splitBomb', 'lockOn', 'flower', 'orbitBurst'],
     },
     music: { bpm: 158, root: 47, mode: 'harmonic', prog: [0, 1, 5, 4], arp: 'fast', lead: 'sawtooth', bass: 'sawtooth', drums: 'trap' },
@@ -285,7 +285,7 @@ const STAGES = [
     kinds: { curve: 0.1, wave: 0.1, zigzag: 0.15, lock: 0.15, boomerang: 0.15, gravity: 0.1, helix: 0.15, bounce: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '무한의 눈', sides: 0, color: '#0284c7', r: 50, move: 'orbit', random: true, rage: 'orbitBurst', rageAt: 0.75,
+      name: '무한의 눈', look: 'mandala', sides: 0, color: '#0284c7', r: 50, move: 'orbit', random: true, rage: 'orbitBurst', rageAt: 0.75,
       patterns: ['curveRing', 'waveFan', 'zigzagFan', 'helixStream', 'boomerangFan', 'gravityFountain', 'flower', 'sweep', 'mineField', 'lockOn'],
     },
     music: { bpm: 164, root: 52, mode: 'minor', prog: [0, 3, 6, 4], arp: 'fast', lead: 'square', bass: 'sawtooth', drums: 'trap' },
@@ -297,7 +297,7 @@ const STAGES = [
     kinds: { straight: 0.05, accel: 0.15, homing: 0.15, bounce: 0.1, split: 0.15, zigzag: 0.1, lock: 0.2, helix: 0.1 },
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
-      name: '시스템 오버로드', sides: 4, color: '#ca8a04', r: 50, move: 'dash', random: true, rage: 'summon', rageAt: 0.8,
+      name: '시스템 오버로드', look: 'glitch', sides: 4, color: '#ca8a04', r: 50, move: 'dash', random: true, rage: 'summon', rageAt: 0.8,
       patterns: ['aimed', 'cross', 'rain', 'rainUp', 'bounceSpray', 'splitBomb', 'zigzagFan', 'lockOn', 'sweep', 'mineField', 'summon'],
     },
     music: { bpm: 170, root: 50, mode: 'phrygian', prog: [0, 1, 0, 6], arp: 'fast', lead: 'square', bass: 'square', drums: 'trap' },
@@ -310,7 +310,7 @@ const STAGES = [
     events: ['fan', 'wall', 'turretRing', 'turretSpiral'],
     boss: {
       // 최종 보스: 처음부터 분노 패턴을 함께 씀
-      name: 'VERTEX', sides: 12, color: '#f5f3ff', r: 54, move: 'teleport', random: true, rage: 'lockOn', rageAt: 1,
+      name: 'VERTEX', look: 'eyeball', sides: 12, color: '#b91c1c', r: 54, move: 'teleport', random: true, rage: 'lockOn', rageAt: 1,
       patterns: ['aimed', 'ring', 'spiral', 'curveRing', 'waveFan', 'accelBurst', 'homingVolley', 'bounceSpray', 'cross', 'splitBomb',
         'zigzagFan', 'helixStream', 'orbitBurst', 'boomerangFan', 'gravityFountain', 'flower', 'sweep', 'mineField', 'summon'],
     },

@@ -1375,6 +1375,17 @@
     ctx.globalAlpha = b.alpha * 0.18;
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 1.7 * pulse, 0, TAU); ctx.fill();
     ctx.globalAlpha = b.alpha;
+    // 보스별 고유 외형 (bossart.js)
+    if (window.BossArt && BossArt.has(d.look)) {
+      b.px = player.x; b.py = player.y;
+      BossArt.draw(ctx, b, {
+        col: b.flash > 0 ? '#ffffff' : d.color,
+        en: enraged,
+        aim: Math.atan2(player.y - b.y, player.x - b.x),
+      });
+      ctx.restore();
+      return;
+    }
     // 본체
     drawPolygon(b.x, b.y, b.r * pulse, d.sides, b.t * 0.8);
     ctx.fillStyle = b.flash > 0 ? '#ffffff' : d.color;
