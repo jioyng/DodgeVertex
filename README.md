@@ -72,3 +72,11 @@
 | `audio.js` | 효과음과 배경음악 (Web Audio API로 합성) |
 | `manifest.webmanifest`, `sw.js`, `pwa.js`, `icons/` | PWA 설치와 오프라인 실행 |
 | `server.ps1`, `start-game.bat` | Windows용 로컬 서버 |
+
+## 개발자 모드
+
+주소 뒤에 `?debug` 를 붙이면 개발자 모드로 열립니다: https://jioyng.github.io/DodgeVertex/?debug
+
+- 연도와 진행도에 상관없이 **30개 스테이지가 모두 열립니다.**
+- 게임 중 화면 아래에 치트 버튼이 나옵니다: 🛡 무적 켜기/끄기 · ⏭ 보스로 바로 · 💥 보스 처치(스테이지 클리어) · ❤ 생명 +1
+- `?debug&year=2028` 처럼 연도를 주면 그 해 기준으로 스테이지 오픈과 엔딩 안내를 확인할 수 있습니다.

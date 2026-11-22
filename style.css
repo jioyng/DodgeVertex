@@ -324,3 +324,24 @@ button:hover { background: #2dd4bf; }
   .credits { overflow-y: auto; }
   .credits-roll { animation: none; }
 }
+
+/* 개발자 모드 (?debug) */
+.dev-note { font-size: 13px; color: #fbbf24; margin: 0; }
+.dev-bar {
+  position: absolute;
+  left: 66px;
+  right: 10px;
+  bottom: 14px;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.dev-bar button {
+  font-size: 12px;
+  padding: 6px 10px;
+  background: rgba(120, 53, 15, 0.8);
+  color: #fde68a;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.5);
+}
+.dev-bar button.on { background: #f59e0b; color: #1c1917; }

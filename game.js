@@ -26,8 +26,10 @@
 
   // ---- 연도별 스테이지 오픈: 기본 26단계, 2027년 1월 1일 27단계 ... 2030년 30단계 ----
   const query = new URLSearchParams(location.search);
-  const debugYear = query.has('debug') ? Number(query.get('year')) || 0 : 0; // 테스트용: ?debug&year=2030
-  const currentYear = () => debugYear || new Date().getFullYear();
+  // 개발자 모드(?debug): 모든 스테이지 열림 + 화면 위 치트 버튼. ?debug&year=2028 처럼 연도를 주면 그 해 기준으로 테스트
+  const DEV = query.has('debug');
+  const debugYear = DEV ? Number(query.get('year')) || 0 : 0;
+  const currentYear = () => debugYear || (DEV ? 9999 : new Date().getFullYear());
   const isOpen = s => !s.openYear || s.openYear <= currentYear();
   const openCount = () => STAGES.filter(isOpen).length;
 
@@ -1709,6 +1711,7 @@
     update(state === 'paused' ? 0 : dt);
     draw(dt);
     pauseBtn.classList.toggle('hidden', state !== 'playing');
+    if (devBar) devBar.classList.toggle('hidden', state !== 'playing');
     requestAnimationFrame(frame);
   }
 
@@ -1735,13 +1738,14 @@
         // 아직 오지 않은 해의 스페셜 스테이지
         btns += `<button class="${cls} future" disabled title="${s.openYear}년 1월 1일 오픈"><span class="yr">${s.openYear}</span></button>`;
       } else {
-        const locked = n > maxStage;
+        const locked = !DEV && n > maxStage;
         btns += `<button class="${cls}" data-action="start" data-stage="${n}" ${locked ? 'disabled' : ''} title="${s.name}">${locked ? '🔒' : n}</button>`;
       }
     });
     const nextSpecial = STAGES.find(s => !isOpen(s));
     showPanel(`
       <h1>DODGE<br><span class="h1-sub">VERTEX</span></h1>
+      ${DEV ? '<p class="dev-note">🛠 개발자 모드 · 모든 스테이지 열림</p>' : ''}
       <p>${openCount()}개의 스테이지를 돌파하고 보스를 물리치세요!</p>
       ${nextSpecial ? `<p class="help">★ 스페셜 STAGE ${STAGES.indexOf(nextSpecial) + 1}이(가) ${nextSpecial.openYear}년 1월 1일에 열립니다 (매년 하나씩, ${STAGES.length}단계까지)</p>` : ''}
       <p class="score-line">${bestScore ? `최고 점수 ${bestScore.toLocaleString()}` : ''}</p>
@@ -1910,7 +1914,34 @@
   fitCanvas();
 
   // 테스트/디버그용: 주소 뒤에 ?debug 를 붙였을 때만 켜짐 (예: http://localhost:8765/?debug)
-  if (new URLSearchParams(location.search).has('debug')) window.DodgeDebug = {
+  // ---- 개발자 모드 화면 버튼 (휴대폰에서도 테스트할 수 있게) ----
+  const devBar = DEV ? document.createElement('div') : null;
+  function devToBoss() {
+    if (phase === 'intro') setPhase('wave');
+    if (phase === 'wave') phaseT = stage.waveTime;
+  }
+  if (devBar) {
+    devBar.className = 'dev-bar hidden';
+    devBar.innerHTML = `
+      <button type="button" data-dev="god">🛡 무적 OFF</button>
+      <button type="button" data-dev="boss">⏭ 보스로</button>
+      <button type="button" data-dev="kill">💥 보스 처치</button>
+      <button type="button" data-dev="life">❤ +1</button>`;
+    document.querySelector('.stage').appendChild(devBar);
+    devBar.addEventListener('click', e => {
+      const b = e.target.closest('button[data-dev]');
+      if (!b || state !== 'playing') return;
+      b.blur();
+      const D = window.DodgeDebug;
+      const act = b.dataset.dev;
+      if (act === 'god') { D.god = !D.god; b.textContent = `🛡 무적 ${D.god ? 'ON' : 'OFF'}`; b.classList.toggle('on', D.god); }
+      else if (act === 'boss') devToBoss();
+      else if (act === 'kill') { if (boss) D.hitBoss(boss.hp + 10); else devToBoss(); }
+      else if (act === 'life') lives = Math.min(5, lives + 1);
+    });
+  }
+
+  if (DEV) window.DodgeDebug = {
     god: false,
     noAutoPause: false,
     stage(n) { startGame(n); },
