@@ -245,3 +245,39 @@ button:hover { background: #2dd4bf; }
   50%, 70% { transform: rotate(0deg); }
   100% { transform: rotate(-90deg); }
 }
+
+/* 광고 자리 (보상형 광고 대체 화면) */
+.ad-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.92);
+}
+.ad-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(86vw, 340px);
+  padding: 28px 20px;
+  border-radius: 16px;
+  background: #111827;
+  box-shadow: 0 0 0 1px #334155;
+  text-align: center;
+  color: #e8ecf5;
+}
+.ad-tag {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #facc15;
+  color: #1c1917;
+}
+.ad-title { font-size: 22px; font-weight: 700; margin: 0; }
+.ad-sub { font-size: 13px; color: #94a3b8; margin: 0; }
+.ad-count { font-size: 15px; min-height: 1.4em; margin: 0; }
+.continue-note { font-size: 13px; color: #94a3b8; margin: 0; }

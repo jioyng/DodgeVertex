@@ -810,11 +810,27 @@
         <p>STAGE ${stageIdx + 1} · ${stage.name}에서 쓰러졌습니다.</p>
         <p class="score-line">점수 ${Math.floor(score).toLocaleString()}${isNew ? ' · 신기록!' : ''}</p>
         <div class="btn-row">
-          <button class="primary" data-action="start" data-stage="${stageIdx + 1}">이 스테이지부터 다시</button>
+          <button class="primary" data-action="continue">📺 광고 보고 이어하기</button>
+        </div>
+        <p class="continue-note">STAGE ${stageIdx + 1}부터 생명 3개로 다시 시작하고, 점수 ${Math.floor(stageScore0).toLocaleString()}점을 이어 갑니다</p>
+        <div class="btn-row">
           <button data-action="start" data-stage="1">처음부터</button>
           <button data-action="title">타이틀</button>
         </div>`);
     }, 900);
+  }
+
+  // 보상형 광고를 끝까지 보면 쓰러진 스테이지 처음부터, 그 스테이지 시작 때 점수로 이어 하기
+  async function continueAfterAd() {
+    if (state !== 'over') return;
+    const rewarded = window.Ads ? await window.Ads.showRewarded() : true;
+    if (!rewarded || state !== 'over') return;
+    score = stageScore0;
+    lives = 3;
+    startStage(stageIdx);
+    state = 'playing';
+    hidePanel();
+    Sound.sfx('start');
   }
 
   function ending() {
@@ -1720,6 +1736,10 @@
       if (isTouch) { if (isStandalone()) lockLandscape(); else enterFullscreen(); }
       startGame(Number(btn.dataset.stage) || 1);
     }
+    else if (a === 'continue') {
+      if (isTouch) { if (isStandalone()) lockLandscape(); else enterFullscreen(); }
+      continueAfterAd();
+    }
     else if (a === 'resume') resume();
     else if (a === 'title') showTitle();
     else if (a === 'sound') toggleSound();
@@ -1823,6 +1843,7 @@
     pattern(name) { if (boss) { boss.pattern = name; boss.rest = 0; boss.patT = 0; boss.cd = 0; } },
     rage() { if (boss) boss.hp = Math.floor(boss.maxHp / 2); },
     effects() { return { freezeT, magnetT, miniT, ghostT, laserT, drones: drones.length, playerR: player.r, inv: player.inv, shield: player.shield }; },
+    die() { if (state === 'playing') { player.inv = 0; player.shield = false; ghostT = 0; lives = 1; hurt(); } },
     kinds() { const c = {}; bullets.forEach(b => { c[b.kind] = (c[b.kind] || 0) + 1; }); return c; },
   };
 
