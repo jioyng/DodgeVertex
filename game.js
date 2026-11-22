@@ -55,12 +55,20 @@
   let bossHintT = 0;
   let stageTime = 0, stageHits = 0, stageScore0 = 0;
   let slowT = 0, floaters = [];
+  // 아이템 효과 타이머
+  let freezeT = 0, magnetT = 0, miniT = 0, ghostT = 0, laserT = 0, laserTick = 0, drones = [], waveItemT = 0;
   const keys = new Set();
   const pointer = { active: false, x: 0, y: 0 };
+
+  // 난이도 진행도: 1단계 0 → 마지막 스테이지 1
+  const diff = () => stageIdx / (STAGES.length - 1);
 
   function resetField() {
     player = { x: W / 2, y: H * 0.72, r: 8, speed: 270, inv: 0, shield: false };
     slowT = 0;
+    freezeT = 0; magnetT = 0; miniT = 0; ghostT = 0; laserT = 0; laserTick = 0;
+    drones = [];
+    waveItemT = 7;
     floaters = [];
     bullets = [];
     particles = [];
@@ -84,6 +92,8 @@
       ...opt,
     };
     if (b.kind === 'zigzag') b.nextZig = b.zigT;
+    if (b.kind === 'boomerang') { b.s = speed; b.ux = Math.cos(angle); b.uy = Math.sin(angle); }
+    if (b.kind === 'orbit') { b.cx = x; b.cy = y; b.oa = angle; b.or = b.or ?? 18; }
     bullets.push(b);
   }
 
@@ -97,6 +107,14 @@
       case 'bounce': return { kind, bounces: 1, jitter: 0.9, color: '#4ade80' };
       case 'split': return { kind, fuse: rand(1.1, 1.9), parts: 8, speedMul: 0.7, r: 9, color: '#f8fafc' };
       case 'zigzag': return { kind, zigT: 0.32, zigA: 0.75, zigDir: 1, aimShift: -0.37, color: '#fde047' };
+      // 천천히 들어와 멈칫한 뒤 플레이어를 조준해 돌진 (빨간 조준선 표시)
+      case 'lock': return { kind, lockT: rand(0.6, 0.9), speedMul: 0.5, dash: base * 2.4, color: '#f87171', r: 6, jitter: 0.6 };
+      // 들어왔다가 감속해서 되돌아 나감
+      case 'boomerang': return { kind, speedMul: 1.3, dec: base * 1.2, color: '#fb923c', jitter: 0.25 };
+      // 포물선을 그리며 아래로 떨어짐
+      case 'gravity': return { kind, g: 170, color: '#93c5fd', aimShift: 0 };
+      // 서로 꼬이며 날아오는 2발 한 쌍
+      case 'helix': return { kind: 'wave', amp: 24, freq: 6.5, helix: true, color: '#f0abfc', r: 4.5 };
       default: return { kind: 'straight' };
     }
   }
@@ -116,9 +134,13 @@
     const o = kindOptions(kind, base);
     const jitter = o.jitter ?? 0.45;
     const a = Math.atan2(player.y - p.y, player.x - p.x) + rand(-jitter, jitter) + (o.aimShift || 0);
-    const sp = base * (o.speedMul || 1);
-    delete o.speedMul; delete o.aimShift; delete o.jitter;
+    let sp = base * (o.speedMul || 1);
+    // 포물선 탄: 아래쪽 벽에서 나오면 위로 높이 쏘아 올림
+    if (kind === 'gravity' && p.y > H * 0.5) sp *= 1.5;
+    const helix = o.helix;
+    delete o.speedMul; delete o.aimShift; delete o.jitter; delete o.helix;
     addBullet(p.x, p.y, a, sp, o);
+    if (helix) addBullet(p.x, p.y, a, sp, { ...o, phase: Math.PI });
   }
 
   function updateBullet(b, dt) {
@@ -159,14 +181,38 @@
         }
         break;
       }
+      case 'lock': {
+        if (!b.locked) {
+          const k = 1 - Math.min(1, 2.4 * dt);
+          b.vx *= k; b.vy *= k;
+          if (b.t >= b.lockT) {
+            b.locked = true;
+            const a = Math.atan2(player.y - b.y, player.x - b.x);
+            b.vx = Math.cos(a) * b.dash; b.vy = Math.sin(a) * b.dash;
+          }
+        }
+        break;
+      }
+      case 'boomerang': {
+        b.s -= b.dec * dt;
+        b.vx = b.ux * b.s; b.vy = b.uy * b.s;
+        break;
+      }
+      case 'gravity': b.vy += b.g * dt; break;
     }
 
     if (b.kind === 'wave') {
       b.bx += b.vx * dt; b.by += b.vy * dt;
       const sp = Math.hypot(b.vx, b.vy) || 1;
-      const off = Math.sin(b.t * b.freq) * b.amp;
+      const off = Math.sin(b.t * b.freq + (b.phase || 0)) * b.amp;
       b.x = b.bx + (-b.vy / sp) * off;
       b.y = b.by + (b.vx / sp) * off;
+    } else if (b.kind === 'orbit') {
+      // 발사 지점을 중심으로 돌면서 점점 멀어지는 소용돌이
+      b.oa += b.av * dt;
+      b.or += b.rv * dt;
+      b.x = b.cx + Math.cos(b.oa) * b.or;
+      b.y = b.cy + Math.sin(b.oa) * b.or;
     } else {
       b.x += b.vx * dt; b.y += b.vy * dt;
     }
@@ -202,14 +248,14 @@
     if (type === 'fan') {
       const p = edgePoint();
       const a0 = Math.atan2(player.y - p.y, player.x - p.x);
-      const n = 5 + Math.floor(stageIdx / 3);
+      const n = 5 + Math.floor(diff() * 6);
       for (let k = 0; k < n; k++) addBullet(p.x, p.y, a0 + (k - (n - 1) / 2) * 0.13, sp * 1.1);
     } else if (type === 'wall') {
       const fromTop = Math.random() < 0.5;
       const horizontal = Math.random() < 0.5;
       const len = horizontal ? H : W;
       const gap = rand(80, len - 160);
-      const gapW = 120 - stageIdx * 3;
+      const gapW = 125 - diff() * 45;
       for (let v = 10; v < len; v += 26) {
         if (v > gap && v < gap + gapW) continue;
         if (horizontal) addBullet(fromTop ? -12 : W + 12, v, fromTop ? 0 : Math.PI, sp * 0.75, { r: 5 });
@@ -226,7 +272,7 @@
       h.t += dt;
       if (h.t < h.delay) continue;
       if (h.type === 'turretRing') {
-        const n = 14 + stageIdx * 2;
+        const n = 12 + Math.floor(diff() * 20);
         for (let k = 0; k < n; k++) addBullet(h.x, h.y, h.ang + (k / n) * TAU, stage.speed * 0.9);
         burst(h.x, h.y, stage.colors.accent, 12, 150);
         h.dead = true;
@@ -292,37 +338,39 @@
     }
   }
 
+  // 보스 공격 1회 발사 → 다음 발사까지의 대기 시간(초)을 돌려줌
   function firePattern(b, name) {
-    // 보스 강도: 1단계 0.45(매우 쉬움) → 10단계 1.12
+    // 보스 강도: 1단계 0.45(매우 쉬움) → 20단계 1.25
     const i = stageIdx;
-    const power = 0.45 + i * 0.075;
-    const sp = 105 + i * 14;
+    const d = diff();
+    const power = 0.45 + d * 0.8;
+    const sp = 105 + d * 165;
     const enraged = i >= 2 && b.hp <= b.maxHp / 2;
     const rate = (enraged ? 0.75 : 1) / power;
-    const N = n => Math.max(2, Math.round(n * (0.5 + i * 0.06)));
+    const N = n => Math.max(2, Math.round(n * (0.5 + d * 1.1)));
     const toP = Math.atan2(player.y - b.y, player.x - b.x);
     let cd = 1;
 
     switch (name) {
       case 'aimed': {
-        const n = N(3 + Math.floor(i / 3)) + (enraged ? 2 : 0);
+        const n = N(3 + Math.floor(d * 3)) + (enraged ? 2 : 0);
         for (let k = 0; k < n; k++) addBullet(b.x, b.y, toP + (k - (n - 1) / 2) * 0.2, sp * 1.15);
         cd = 0.7; break;
       }
       case 'ring': {
-        const n = N(12 + i * 2);
+        const n = N(14);
         b.ang += 0.3;
         for (let k = 0; k < n; k++) addBullet(b.x, b.y, b.ang + (k / n) * TAU, sp);
         cd = 1.1; break;
       }
       case 'spiral': {
-        const arms = i >= 7 ? 3 : 2;
+        const arms = d >= 0.75 ? 4 : d >= 0.35 ? 3 : 2;
         for (let k = 0; k < arms; k++) addBullet(b.x, b.y, b.ang + (k / arms) * TAU, sp * 0.9, { r: 4 });
         b.ang += 0.22;
         cd = 0.075; break;
       }
       case 'curveRing': {
-        const n = N(10 + i);
+        const n = N(12);
         b.ang += 0.25;
         for (let k = 0; k < n; k++) {
           addBullet(b.x, b.y, b.ang + (k / n) * TAU, sp * 0.85, { kind: 'curve', w: k % 2 ? 0.8 : -0.8 });
@@ -334,7 +382,7 @@
         cd = 0.8; break;
       }
       case 'rain': {
-        const kind = i >= 6 ? 'accel' : 'straight';
+        const kind = d >= 0.3 ? 'accel' : 'straight';
         addBullet(rand(10, W - 10), -12, Math.PI / 2 + rand(-0.12, 0.12), sp * rand(0.7, 1.2),
           kind === 'accel' ? { kind, acc: 160, max: sp * 2, color: '#fb923c' } : {});
         cd = 0.09; break;
@@ -345,7 +393,7 @@
         cd = 0.12; break;
       }
       case 'accelBurst': {
-        const n = N(16 + i);
+        const n = N(18);
         b.ang += 0.2;
         for (let k = 0; k < n; k++) addBullet(b.x, b.y, b.ang + (k / n) * TAU, 40, { kind: 'accel', acc: 230, max: sp * 2, color: '#fb7185' });
         cd = 1.2; break;
@@ -359,21 +407,80 @@
         cd = 0.16; break;
       }
       case 'cross': {
-        const arms = i >= 9 ? 6 : 4;
+        const arms = d >= 0.45 ? 6 : 4;
         for (let k = 0; k < arms; k++) addBullet(b.x, b.y, b.ang + (k / arms) * TAU, sp, { r: 4 });
         b.ang += 0.065;
         cd = 0.09; break;
       }
       case 'splitBomb': {
-        addBullet(b.x, b.y, toP + rand(-0.2, 0.2), sp * 0.9, { kind: 'split', fuse: 1.0, parts: N(10 + i), r: 10, color: '#f8fafc' });
+        addBullet(b.x, b.y, toP + rand(-0.2, 0.2), sp * 0.9, { kind: 'split', fuse: 1.0, parts: N(12), r: 10, color: '#f8fafc' });
         cd = 1.0; break;
       }
       case 'zigzagFan': {
         for (let k = 0; k < 4; k++) addBullet(b.x, b.y, toP + (k - 1.5) * 0.4 - 0.37, sp, { kind: 'zigzag', zigT: 0.3, zigA: 0.75, zigDir: 1, color: '#fde047' });
         cd = 0.9; break;
       }
+      // ---- 새 패턴 ----
+      case 'helixStream': { // 플레이어를 향해 꼬이며 날아오는 이중 나선 줄기
+        const a = toP + Math.sin(b.t * 1.3) * 0.25;
+        for (const ph of [0, Math.PI]) addBullet(b.x, b.y, a, sp * 1.05, { kind: 'wave', amp: 26, freq: 7, phase: ph, r: 4.5, color: '#f0abfc' });
+        cd = 0.13; break;
+      }
+      case 'orbitBurst': { // 보스 주위를 돌면서 퍼져 나가는 소용돌이 고리
+        const n = N(10);
+        const dir = (b.patIdx % 2 ? 1 : -1);
+        b.ang += 0.4;
+        for (let k = 0; k < n; k++) {
+          addBullet(b.x, b.y, b.ang + (k / n) * TAU, 0, { kind: 'orbit', av: dir * (1.3 + d * 0.6), rv: sp * 0.55, or: b.r * 0.8, color: '#e879f9' });
+        }
+        cd = 1.5; break;
+      }
+      case 'lockOn': { // 보스 주위에 탄을 깔고 잠시 후 일제히 조준 돌진
+        const n = 2 + Math.floor(d * 4) + (enraged ? 1 : 0);
+        for (let k = 0; k < n; k++) {
+          const a = b.ang + (k / n) * TAU;
+          addBullet(b.x + Math.cos(a) * (b.r + 24), b.y + Math.sin(a) * (b.r + 24), a, 60,
+            { kind: 'lock', lockT: 0.9 + k * 0.08, dash: sp * 2.4, r: 6, color: '#f87171' });
+        }
+        b.ang += 0.7;
+        cd = 1.7; break;
+      }
+      case 'boomerangFan': { // 부채꼴로 던졌다가 되돌아오는 부메랑
+        const n = N(5);
+        for (let k = 0; k < n; k++) {
+          addBullet(b.x, b.y, toP + (k - (n - 1) / 2) * 0.28, sp * 1.5, { kind: 'boomerang', dec: sp * 1.35, color: '#fb923c' });
+        }
+        cd = 1.2; break;
+      }
+      case 'gravityFountain': { // 위로 솟구쳤다가 쏟아지는 분수
+        for (let k = 0; k < 2; k++) {
+          addBullet(b.x, b.y, -Math.PI / 2 + rand(-1.0, 1.0), sp * rand(0.9, 1.5), { kind: 'gravity', g: 300, color: '#93c5fd' });
+        }
+        cd = 0.09; break;
+      }
+      case 'flower': { // 빠른 탄과 느린 탄이 겹쳐 꽃잎 모양으로 퍼짐
+        const n = N(14);
+        b.ang += 0.17;
+        for (let k = 0; k < n; k++) {
+          addBullet(b.x, b.y, b.ang + (k / n) * TAU, sp * (k % 2 ? 1.1 : 0.65), { r: 4.5, color: k % 2 ? '#f9a8d4' : '#fde68a' });
+        }
+        cd = 0.55; break;
+      }
+      case 'sweep': { // 레이저처럼 촘촘한 탄 줄기가 좌우로 쓸어냄
+        addBullet(b.x, b.y, toP + Math.sin(b.t * 2.2) * 0.95, sp * 1.7, { r: 4, color: '#fef08a' });
+        cd = 0.035; break;
+      }
+      case 'mineField': { // 느리게 퍼지다 터지는 지뢰
+        addBullet(b.x, b.y, rand(0, TAU), sp * rand(0.3, 0.5), { kind: 'split', fuse: rand(1.4, 2.0), parts: N(8), r: 9, color: '#a5b4fc' });
+        cd = 0.55; break;
+      }
+      case 'summon': { // 화면 곳곳에 경고 후 터지는 포탑 소환
+        const p = safePoint(200);
+        hazards.push({ x: p.x, y: p.y, type: Math.random() < 0.5 ? 'turretRing' : 'turretSpiral', t: 0, delay: 1.1, dur: 2, cd: 0, ang: rand(0, TAU) });
+        cd = 2.2; break;
+      }
     }
-    b.cd = cd * rate;
+    return cd * rate;
   }
 
   function updateBoss(dt) {
@@ -394,22 +501,30 @@
     moveBoss(b, dt);
     if (b.entering || b.alpha < 0.6) return;
 
-    if (b.rest > 0) { b.rest -= dt; return; }
-    b.patT += dt;
-    b.cd -= dt;
-    if (b.cd <= 0) firePattern(b, b.pattern);
-    if (b.patT > 4.5) {
-      b.patT = 0;
-      b.rest = 0.5 + 0.9 * (1 - stageIdx / 9);
-      b.cd = 0.2;
-      const list = b.def.patterns;
-      b.pattern = b.def.random ? pick(list) : list[++b.patIdx % list.length];
+    // 분노 모드(체력 절반 이하): 주 패턴과 별개로 추가 패턴을 동시에 사용
+    if (b.def.rage && stageIdx >= 2 && b.hp <= b.maxHp / 2) {
+      b.rcd = (b.rcd ?? 1) - dt;
+      if (b.rcd <= 0) b.rcd = firePattern(b, b.def.rage) * 1.8;
+    }
+
+    if (b.rest > 0) { b.rest -= dt; }
+    else {
+      b.patT += dt;
+      b.cd -= dt;
+      if (b.cd <= 0) b.cd = firePattern(b, b.pattern);
+      if (b.patT > 4.5) {
+        b.patT = 0;
+        b.rest = 0.5 + 0.9 * (1 - diff());
+        b.cd = 0.2;
+        const list = b.def.patterns;
+        b.pattern = b.def.random ? pick(list) : list[++b.patIdx % list.length];
+      }
     }
 
     // 보스 공격 아이템 생성 (초반 스테이지일수록 자주)
     orbTimer -= dt;
     if (orbTimer <= 0 && orbs.length < 2) {
-      orbTimer = 1.4 + stageIdx * 0.12;
+      orbTimer = 1.4 + diff() * 1.2;
       for (let k = 0; k < 20; k++) {
         const p = { x: rand(50, W - 50), y: rand(80, H - 50) };
         if (dist(p, b) > 170 && dist(p, player) > 110) { orbs.push({ x: p.x, y: p.y, t: 0, life: 9, type: pickItem() }); break; }
@@ -429,14 +544,26 @@
     shield: { icon: '🛡', color: '#4ade80', w: 12, label: '방패 장착! (1회 방어)' },
     slow:   { icon: '⏳', color: '#c084fc', w: 13, label: '시간 감속! (5초)' },
     heart:  { icon: '❤', color: '#fb7185', w: 9, label: '생명 +1' },
+    // ---- 새 아이템 ----
+    laser:  { icon: '🔆', color: '#facc15', w: 9, label: '레이저! (2.4초 연속 공격)' },
+    drone:  { icon: '🛸', color: '#a5b4fc', w: 9, label: '드론 소환! (자동 공격 + 탄 막기)' },
+    freeze: { icon: '❄', color: '#7dd3fc', w: 9, label: '빙결! (탄 2.5초 정지)' },
+    magnet: { icon: '🧲', color: '#fda4af', w: 8, label: '자석! (아이템 끌어당김)' },
+    ghost:  { icon: '👻', color: '#e2e8f0', w: 8, label: '유령화! (3초 무적)' },
+    mini:   { icon: '🔹', color: '#60a5fa', w: 8, label: '축소! (8초간 판정 절반)' },
   };
+  // 버티기 구간에도 가끔 나오는 방어용 아이템 (보스가 없을 때는 공격 효과 없음)
+  const WAVE_ITEMS = ['shield', 'slow', 'freeze', 'ghost', 'mini', 'drone', 'heart'];
 
-  function pickItem() {
+  function pickItem(pool) {
     const w = {};
     for (const [k, v] of Object.entries(ITEMS)) {
+      if (pool && !pool.includes(k)) continue;
       if (k === 'heart' && lives >= 5) continue;
       if (k === 'shield' && player.shield) continue;
-      w[k] = v.w;
+      if (k === 'drone' && drones.length >= 2) continue;
+      if (k === 'laser' && laserT > 0) continue;
+      w[k] = k === 'heart' && pool ? v.w * 0.4 : v.w;
     }
     return weighted(w);
   }
@@ -482,6 +609,81 @@
         lives = Math.min(5, lives + 1);
         fireShot(o.x, o.y, 0, 1, it.color, 6);
         break;
+      case 'laser':
+        Sound.sfx('laser');
+        laserT = 2.4;
+        laserTick = 0.15;
+        break;
+      case 'drone':
+        Sound.sfx('drone');
+        drones.push({ ang: drones.length ? drones[0].ang + Math.PI : 0, life: 12, cd: 0.8 });
+        break;
+      case 'freeze':
+        Sound.sfx('freeze');
+        freezeT = 2.5;
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      case 'magnet':
+        Sound.sfx('magnet');
+        magnetT = 9;
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      case 'ghost':
+        Sound.sfx('ghost');
+        ghostT = 3;
+        player.inv = Math.max(player.inv, 3);
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+      case 'mini':
+        Sound.sfx('mini');
+        miniT = 8;
+        fireShot(o.x, o.y, 0, 1, it.color, 6);
+        break;
+    }
+  }
+
+  // 아이템 효과 진행 (레이저, 드론, 자석, 축소 등)
+  function updateItemEffects(dt) {
+    freezeT = Math.max(0, freezeT - dt);
+    magnetT = Math.max(0, magnetT - dt);
+    miniT = Math.max(0, miniT - dt);
+    ghostT = Math.max(0, ghostT - dt);
+    player.r = miniT > 0 ? 4 : 8;
+
+    // 레이저: 일정 간격으로 보스에 연속 피해
+    if (laserT > 0) {
+      laserT -= dt;
+      laserTick -= dt;
+      if (laserTick <= 0 && boss && boss.dying <= 0 && !boss.entering) {
+        laserTick = 0.6;
+        damageBoss(1);
+      }
+    }
+
+    // 드론: 플레이어 주위를 돌며 보스를 자동 공격하고, 닿는 탄을 막음
+    for (const dr of drones) {
+      dr.life -= dt;
+      dr.ang += 3 * dt;
+      dr.x = player.x + Math.cos(dr.ang) * 34;
+      dr.y = player.y + Math.sin(dr.ang) * 34;
+      dr.cd -= dt;
+      if (dr.cd <= 0 && boss && boss.dying <= 0 && !boss.entering) {
+        dr.cd = 1.6;
+        fireShot(dr.x, dr.y, 0, 1, '#a5b4fc', 4);
+      }
+      for (const b of bullets) {
+        if (!b.dead && Math.hypot(b.x - dr.x, b.y - dr.y) < b.r + 8) { b.dead = true; burst(b.x, b.y, '#a5b4fc', 4, 90); }
+      }
+    }
+    drones = drones.filter(dr => dr.life > 0);
+
+    // 자석: 화면의 아이템을 플레이어 쪽으로 끌어당김
+    if (magnetT > 0) {
+      for (const o of orbs) {
+        const dx = player.x - o.x, dy = player.y - o.y, dd = Math.hypot(dx, dy) || 1;
+        const m = Math.min(dd, 340 * dt);
+        o.x += (dx / dd) * m; o.y += (dy / dd) * m;
+      }
     }
   }
 
@@ -621,7 +823,7 @@
     Sound.playTheme(STAGES[1].music, false, 77);
     showPanel(`
       <h1>ALL CLEAR!</h1>
-      <p>10개 스테이지와 모든 보스를 물리쳤습니다. 축하합니다!</p>
+      <p>${STAGES.length}개 스테이지와 모든 보스를 물리쳤습니다. 축하합니다!</p>
       <p class="score-line">최종 점수 ${Math.floor(score).toLocaleString()}${isNew ? ' · 신기록!' : ''}</p>
       <div class="btn-row">
         <button class="primary" data-action="start" data-stage="1">다시 도전</button>
@@ -652,6 +854,15 @@
           eventTimer -= dt;
           if (eventTimer <= 0) { eventTimer = stage.eventEvery * rand(0.8, 1.2); triggerEvent(pick(stage.events)); }
         }
+        // 버티기 구간의 방어용 아이템 (2단계부터, 약 9초마다)
+        if (stageIdx >= 1) {
+          waveItemT -= dt;
+          if (waveItemT <= 0 && orbs.length < 1) {
+            waveItemT = rand(8, 10);
+            const p = safePoint(140);
+            orbs.push({ x: p.x, y: Math.max(140, p.y), t: 0, life: 7, type: pickItem(WAVE_ITEMS) });
+          }
+        }
         if (phaseT >= stage.waveTime) {
           setPhase('warning');
           Sound.stopMusic();
@@ -679,7 +890,8 @@
 
       updateHazards(dt);
       slowT = Math.max(0, slowT - dt);
-      const bdt = slowT > 0 ? dt * 0.45 : dt;
+      updateItemEffects(dt);
+      const bdt = freezeT > 0 ? 0 : slowT > 0 ? dt * 0.45 : dt;
       for (const b of bullets) updateBullet(b, bdt);
       bullets = bullets.filter(b => !b.dead && b.x > -60 && b.x < W + 60 && b.y > -60 && b.y < H + 60);
 
@@ -694,7 +906,7 @@
       // 아이템 수집 → 보스 공격
       for (const o of orbs) {
         o.t += dt;
-        if (dist(o, player) < player.r + 15) { o.dead = true; collectItem(o); }
+        if (dist(o, player) < 8 + 15) { o.dead = true; collectItem(o); }
         else if (o.t > o.life) o.dead = true;
       }
       orbs = orbs.filter(o => !o.dead);
@@ -937,6 +1149,93 @@
         }
         break;
       }
+      case 'scan': { // 신스웨이브: 줄무늬 태양 + 원근 격자
+        gradientBg(c.bg, c.bg2);
+        const hz = H * 0.5, sx = W / 2, sy = H * 0.36, sr = W * 0.3;
+        const sg = ctx.createLinearGradient(0, sy - sr, 0, sy + sr);
+        sg.addColorStop(0, '#fde047'); sg.addColorStop(1, c.accent);
+        ctx.fillStyle = sg;
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath(); ctx.arc(sx, sy, sr, 0, TAU); ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = c.bg2;
+        for (let k = 0; k < 7; k++) {
+          const yy = sy + k * sr * 0.16 + ((t * 12) % (sr * 0.16));
+          ctx.fillRect(sx - sr, yy, sr * 2, 3 + k * 1.2);
+        }
+        ctx.fillStyle = c.bg;
+        ctx.fillRect(0, hz, W, H - hz);
+        ctx.strokeStyle = c.line;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let k = -12; k <= 12; k++) { ctx.moveTo(sx + k * 10, hz); ctx.lineTo(sx + k * 90, H); }
+        for (let k = 0; k < 14; k++) {
+          const z = ((k + (t * 0.8) % 1) / 14);
+          const yy = hz + (H - hz) * z * z;
+          ctx.moveTo(0, yy); ctx.lineTo(W, yy);
+        }
+        ctx.stroke();
+        break;
+      }
+      case 'matrix': { // 떨어지는 디지털 문자 비
+        gradientBg(c.bg, c.bg2);
+        ctx.font = 'bold 16px monospace';
+        ctx.textAlign = 'center';
+        for (let col = 0; col < 30; col++) {
+          const x = col * 20 + 10;
+          const spd = 90 + ((col * 37) % 7) * 25;
+          const head = (t * spd + col * 173) % (H + 260);
+          for (let k = 0; k < 13; k++) {
+            const y = head - k * 20;
+            if (y < -20 || y > H + 20) continue;
+            ctx.globalAlpha = k === 0 ? 0.9 : 0.55 * (1 - k / 13);
+            ctx.fillStyle = k === 0 ? '#dcfce7' : c.accent;
+            ctx.fillText(((col * 7 + Math.floor(y / 20) + Math.floor(t * 3)) % 3) ? '1' : '0', x, y);
+          }
+        }
+        break;
+      }
+      case 'nebula': { // 천천히 움직이는 성운 + 별
+        gradientBg(c.bg, c.bg2);
+        const blobs = [[0.3, 0.25, c.accent], [0.75, 0.45, '#f472b6'], [0.4, 0.75, '#38bdf8'], [0.8, 0.85, c.accent]];
+        blobs.forEach(([bx, by, col], k) => {
+          const x = W * bx + Math.sin(t * 0.2 + k) * 60;
+          const y = H * by + Math.cos(t * 0.17 + k * 2) * 50;
+          const r = W * (0.45 + 0.08 * Math.sin(t * 0.3 + k));
+          const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+          g.addColorStop(0, col);
+          g.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.globalAlpha = 0.22;
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, W, H);
+        });
+        for (const s of STARS) {
+          if (s.y > H) continue;
+          ctx.globalAlpha = 0.25 + 0.6 * s.z * (0.5 + 0.5 * Math.sin(t * 2 + s.x));
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(s.x, s.y, 1.5 + s.z, 1.5 + s.z);
+        }
+        break;
+      }
+      case 'tunnel': { // 안쪽으로 빨려 들어가는 터널
+        gradientBg(c.bg2, c.bg, false);
+        const cx = W / 2, cy = H * 0.42;
+        ctx.strokeStyle = c.line;
+        ctx.lineWidth = 2;
+        for (let k = 0; k < 12; k++) {
+          const z = ((k / 12) + (t * 0.35) % 1) % 1;
+          const s = z * z;
+          ctx.globalAlpha = 0.15 + 0.85 * s;
+          ctx.strokeRect(cx - W * 0.75 * s, cy - H * 0.65 * s, W * 1.5 * s, H * 1.3 * s);
+        }
+        ctx.globalAlpha = 0.35;
+        ctx.beginPath();
+        for (const [ex, ey] of [[0, 0], [W, 0], [0, H], [W, H], [W / 2, 0], [W / 2, H], [0, H / 2], [W, H / 2]]) {
+          ctx.moveTo(cx, cy); ctx.lineTo(ex, ey);
+        }
+        ctx.stroke();
+        break;
+      }
       case 'void': {
         gradientBg(c.bg2, c.bg, false);
         ctx.fillStyle = c.line;
@@ -1053,6 +1352,35 @@
     ctx.restore();
   }
 
+  // 오른쪽 아래: 지금 켜져 있는 아이템 효과와 남은 시간
+  function drawBuffs() {
+    const list = [];
+    if (player.shield) list.push(['🛡', '']);
+    if (laserT > 0) list.push(['🔆', laserT]);
+    if (drones.length) list.push(['🛸', Math.max(...drones.map(d => d.life))]);
+    if (freezeT > 0) list.push(['❄', freezeT]);
+    if (slowT > 0) list.push(['⏳', slowT]);
+    if (magnetT > 0) list.push(['🧲', magnetT]);
+    if (ghostT > 0) list.push(['👻', ghostT]);
+    if (miniT > 0) list.push(['🔹', miniT]);
+    if (!list.length) return;
+    ctx.save();
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    list.forEach(([icon, t], k) => {
+      const y = H - 34 - k * 34;
+      ctx.fillStyle = 'rgba(15,23,42,0.6)';
+      ctx.fillRect(W - 92, y - 15, 80, 30);
+      ctx.font = '18px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(icon, W - 62, y + 1);
+      ctx.font = 'bold 16px "Segoe UI", sans-serif';
+      ctx.fillStyle = '#e8ecf5';
+      ctx.fillText(t === '' ? '1회' : `${t.toFixed(1)}`, W - 18, y + 1);
+    });
+    ctx.restore();
+  }
+
   function drawHUD() {
     const c = stage.colors;
     ctx.save();
@@ -1150,6 +1478,17 @@
 
     if (boss) drawBoss(boss);
 
+    // 조준 돌진 탄의 조준선 (돌진 직전 경고)
+    ctx.save();
+    ctx.setLineDash([5, 7]);
+    ctx.lineWidth = 1.5;
+    for (const b of bullets) {
+      if (b.kind !== 'lock' || b.locked) continue;
+      ctx.strokeStyle = `rgba(248,113,113,${0.25 + 0.5 * clamp(b.t / b.lockT, 0, 1)})`;
+      ctx.beginPath(); ctx.moveTo(b.x, b.y); ctx.lineTo(player.x, player.y); ctx.stroke();
+    }
+    ctx.restore();
+
     // 탄
     for (const b of bullets) {
       ctx.globalAlpha = 0.25;
@@ -1162,6 +1501,33 @@
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(b.x, b.y, b.r * (1 - b.t / b.fuse) + 2, 0, TAU); ctx.stroke();
       }
+    }
+
+    // 레이저 빔
+    if (laserT > 0 && boss && boss.dying <= 0 && state !== 'over') {
+      ctx.save();
+      const wob = 1 + Math.sin(animT * 40) * 0.25;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(250,204,21,0.35)';
+      ctx.lineWidth = 16 * wob;
+      ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(boss.x, boss.y); ctx.stroke();
+      ctx.strokeStyle = '#fef9c3';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(player.x, player.y); ctx.lineTo(boss.x, boss.y); ctx.stroke();
+      ctx.restore();
+    }
+
+    // 드론
+    for (const dr of drones) {
+      if (dr.x === undefined) continue;
+      ctx.save();
+      ctx.globalAlpha = dr.life < 2 && Math.floor(dr.life * 8) % 2 ? 0.35 : 1;
+      ctx.fillStyle = 'rgba(165,180,252,0.3)';
+      ctx.beginPath(); ctx.arc(dr.x, dr.y, 11, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#a5b4fc';
+      drawPolygon(dr.x, dr.y, 7, 3, -dr.ang);
+      ctx.fill();
+      ctx.restore();
     }
 
     // 공격 탄
@@ -1190,9 +1556,13 @@
       ctx.restore();
     }
 
-    // 시간 감속 효과
+    // 시간 감속 / 빙결 효과
     if (slowT > 0) {
       ctx.fillStyle = `rgba(192,132,252,${Math.min(0.12, slowT * 0.05)})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (freezeT > 0) {
+      ctx.fillStyle = `rgba(125,211,252,${Math.min(0.16, freezeT * 0.08)})`;
       ctx.fillRect(0, 0, W, H);
     }
 
@@ -1223,6 +1593,7 @@
 
     if (state === 'playing' || state === 'paused') {
       drawHUD();
+      drawBuffs();
       if (phase === 'intro') {
         const a = phaseT < 0.3 ? phaseT / 0.3 : phaseT > 2.6 ? Math.max(0, (3 - phaseT) / 0.4) : 1;
         drawBanner(`STAGE ${stageIdx + 1}`, stage.name, stage.colors.accent, a);
@@ -1239,7 +1610,7 @@
         ctx.font = 'bold 16px "Segoe UI", "Malgun Gothic", sans-serif';
         ctx.fillStyle = '#fde047';
         ctx.fillText('★ 아이템을 먹으면 보스를 공격합니다!', W / 2, H - 46);
-        ctx.fillText('⚡3연타 · 💣폭탄 · 🛡방패 · ⏳감속 · ❤생명', W / 2, H - 22);
+        ctx.fillText('⚡3연타 💣폭탄 🔆레이저 🛸드론 ❄빙결 👻무적 등 12종', W / 2, H - 22);
         ctx.restore();
       }
     }
@@ -1278,7 +1649,7 @@
     });
     showPanel(`
       <h1>DODGE<br><span class="h1-sub">VERTEX</span></h1>
-      <p>10개의 스테이지를 돌파하고 보스를 물리치세요!</p>
+      <p>${STAGES.length}개의 스테이지를 돌파하고 보스를 물리치세요!</p>
       <p class="score-line">${bestScore ? `최고 점수 ${bestScore.toLocaleString()}` : ''}</p>
       <button class="primary" data-action="start" data-stage="1">게임 시작</button>
       <div class="stage-select">
@@ -1288,7 +1659,7 @@
       ${menuRow()}
       <p class="help">${isTouch
         ? '화면 아무 곳이나 손가락으로 드래그해 이동 · ⏸ 버튼으로 일시정지'
-        : '이동: 방향키 / WASD / 마우스 · 일시정지: P · 소리: M'}<br>보스전에서는 아이템(★⚡💣🛡⏳❤)을 먹어 보스를 공격하세요.</p>`);
+        : '이동: 방향키 / WASD / 마우스 · 일시정지: P · 소리: M'}<br>보스전에서는 아이템(★⚡💣🔆🛸 등 12종)을 먹어 보스를 공격하세요.</p>`);
   }
 
   // ---- 메뉴 공통 버튼 (소리 / 앱 설치 / 전체화면) ----
@@ -1449,6 +1820,10 @@
     item(type) { orbs.push({ x: player.x, y: player.y, t: 0, life: 9, type }); },
     boss() { if (state === 'playing') phaseT = stage.waveTime; },
     info() { return { state, phase, stage: stageIdx + 1, lives, score: Math.floor(score), bullets: bullets.length, bossHp: boss && boss.hp }; },
+    pattern(name) { if (boss) { boss.pattern = name; boss.rest = 0; boss.patT = 0; boss.cd = 0; } },
+    rage() { if (boss) boss.hp = Math.floor(boss.maxHp / 2); },
+    effects() { return { freezeT, magnetT, miniT, ghostT, laserT, drones: drones.length, playerR: player.r, inv: player.inv, shield: player.shield }; },
+    kinds() { const c = {}; bullets.forEach(b => { c[b.kind] = (c[b.kind] || 0) + 1; }); return c; },
   };
 
   showTitle();

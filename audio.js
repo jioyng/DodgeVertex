@@ -211,6 +211,23 @@ const Sound = (() => {
       case 'slow':
         tone({ freq: 880, slideTo: 220, type: 'sine', start: t, dur: 0.6, vol: 0.3, dest: sfxGain });
         break;
+      case 'laser':
+        tone({ freq: 220, slideTo: 1760, type: 'sawtooth', start: t, dur: 0.35, vol: 0.25, dest: sfxGain });
+        tone({ freq: 1760, type: 'square', start: t + 0.35, dur: 1.6, vol: 0.06, dest: sfxGain });
+        break;
+      case 'drone': notes([72, 79, 76, 84], 'square', 0.06, 0.12, 0.18); break;
+      case 'freeze':
+        notes([96, 91, 88, 84], 'sine', 0.05, 0.3, 0.25);
+        noise({ start: t, dur: 0.5, vol: 0.25, dest: sfxGain, filter: 'highpass', freq: 6000 });
+        break;
+      case 'magnet':
+        tone({ freq: 160, slideTo: 640, type: 'triangle', start: t, dur: 0.4, vol: 0.35, dest: sfxGain });
+        break;
+      case 'ghost':
+        tone({ freq: 600, slideTo: 300, type: 'sine', start: t, dur: 0.5, vol: 0.25, dest: sfxGain });
+        tone({ freq: 606, slideTo: 303, type: 'sine', start: t, dur: 0.5, vol: 0.25, dest: sfxGain });
+        break;
+      case 'mini': notes([88, 93, 98], 'square', 0.04, 0.1, 0.2); break;
       case 'bossHit':
         tone({ freq: 220, slideTo: 110, type: 'square', start: t, dur: 0.12, vol: 0.35, dest: sfxGain });
         noise({ start: t, dur: 0.1, vol: 0.3, dest: sfxGain, filter: 'bandpass', freq: 3000 });
