@@ -1,4 +1,4 @@
-﻿# DodgeVertax 게임용 초간단 로컬 웹서버 (http://localhost:8766)
+﻿# DodgeVertex 게임용 초간단 로컬 웹서버 (http://localhost:8766)
 # 웹앱(PWA) 설치는 http(s) 주소에서만 가능해서 이 서버로 게임을 엽니다.
 param(
   [string]$Root = $PSScriptRoot,
@@ -17,7 +17,7 @@ try {
   exit 1
 }
 
-Write-Host "DodgeVertax 서버 실행 중: http://localhost:$Port/"
+Write-Host "DodgeVertex 서버 실행 중: http://localhost:$Port/"
 Write-Host "이 창을 닫으면 서버가 종료됩니다."
 if ($Open) { Start-Process "http://localhost:$Port/" }
 

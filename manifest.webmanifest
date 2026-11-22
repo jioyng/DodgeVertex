@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "DodgeVertax - 세로 닷지 게임",
-  "short_name": "DodgeVertax",
+  "name": "DodgeVertex - 세로 닷지 게임",
+  "short_name": "DodgeVertex",
   "description": "세로 화면으로 즐기는 닷지 게임: 10개 스테이지와 보스를 돌파하세요",
   "start_url": "./index.html",
   "scope": "./",

@@ -2,7 +2,7 @@
 const Sound = (() => {
   'use strict';
 
-  const MUTE_KEY = 'dodgevertax-muted';
+  const MUTE_KEY = 'dodgevertex-muted';
   let muted = false;
   try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch (e) { /* 무시 */ }
 

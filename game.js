@@ -21,8 +21,8 @@
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) { /* 무시 */ } },
   };
-  let bestScore = Number(store.get('dodgevertax-best-score', 0)) || 0;
-  let maxStage = Math.min(STAGES.length, Math.max(1, Number(store.get('dodgevertax-max-stage', 1)) || 1));
+  let bestScore = Number(store.get('dodgevertex-best-score', 0)) || 0;
+  let maxStage = Math.min(STAGES.length, Math.max(1, Number(store.get('dodgevertex-max-stage', 1)) || 1));
 
   // ---- 유틸 ----
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -517,7 +517,7 @@
     if (gainedLife) setTimeout(() => Sound.sfx('extraLife'), 1300);
     if (stageIdx + 2 > maxStage) {
       maxStage = Math.min(STAGES.length, stageIdx + 2);
-      store.set('dodgevertax-max-stage', maxStage);
+      store.set('dodgevertex-max-stage', maxStage);
     }
     setPhase('clear');
   }
@@ -590,7 +590,7 @@
   function saveBest() {
     if (score > bestScore) {
       bestScore = Math.floor(score);
-      store.set('dodgevertax-best-score', bestScore);
+      store.set('dodgevertex-best-score', bestScore);
       return true;
     }
     return false;
@@ -1277,7 +1277,7 @@
       btns += `<button class="stage-btn" data-action="start" data-stage="${i + 1}" ${locked ? 'disabled' : ''} title="${s.name}">${locked ? '🔒' : i + 1}</button>`;
     });
     showPanel(`
-      <h1>DODGE<br><span class="h1-sub">VERTAX</span></h1>
+      <h1>DODGE<br><span class="h1-sub">VERTEX</span></h1>
       <p>10개의 스테이지를 돌파하고 보스를 물리치세요!</p>
       <p class="score-line">${bestScore ? `최고 점수 ${bestScore.toLocaleString()}` : ''}</p>
       <button class="primary" data-action="start" data-stage="1">게임 시작</button>
